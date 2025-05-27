@@ -67,7 +67,8 @@ fun NavGraph() {
             startDestination = "home",
             modifier = Modifier.padding(
                 start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
-                end = innerPadding.calculateEndPadding(LocalLayoutDirection.current)
+                end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                bottom = innerPadding.calculateBottomPadding()
             ),
         ) {
             composable(route = Screen.Home.route) {

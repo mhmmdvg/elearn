@@ -1,6 +1,7 @@
 package com.elearn.presentation.ui.components
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,7 +36,7 @@ import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 
-val navigationItems = listOf(
+private val navigationItems = listOf(
     NavigationItem(
         title = "Home",
         icon = Lucide.House,
@@ -68,7 +69,11 @@ fun BottomNavigation(navController: NavController) {
             sheetState = sheetState,
             containerColor = Color.White
         ) {
-            Text("test")
+            Column(
+                modifier = Modifier.height(screenHeight * 0.95f)
+            ) {
+                MaterialForm()
+            }
         }
     }
 
