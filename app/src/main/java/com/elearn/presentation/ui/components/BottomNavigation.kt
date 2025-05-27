@@ -59,13 +59,13 @@ private val navigationItems = listOf(
 fun BottomNavigation(navController: NavController) {
     val selectedNavigationIndex = rememberSaveable { mutableIntStateOf(0) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var addClass by remember { mutableStateOf(false) }
+    var addMaterial by remember { mutableStateOf(false) }
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    if (addClass) {
+    if (addMaterial) {
         ModalBottomSheet(
-            onDismissRequest = { addClass = false },
+            onDismissRequest = { addMaterial = false },
             sheetState = sheetState,
             containerColor = Color.White
         ) {
@@ -92,7 +92,7 @@ fun BottomNavigation(navController: NavController) {
                         selectedNavigationIndex.intValue = index
                         navController.navigate(it.route)
                     } else {
-                       addClass = true
+                       addMaterial = true
                     }
                 },
                 icon = {
