@@ -15,3 +15,5 @@ val PrimaryForegroundColor = Color(0xFFFFFFFF)
 
 val MutedColor = Color(0xFFd4d4d8)
 val MutedForegroundColor = Color(0xFF6B7280)
+
+val AccentColor = Color(0xFFd9f2b9)
