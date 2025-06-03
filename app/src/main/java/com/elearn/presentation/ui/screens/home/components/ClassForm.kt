@@ -11,22 +11,21 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elearn.presentation.ui.components.CustomButton
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
+import com.elearn.presentation.viewmodel.ClassFormViewModel
 
 @Composable
-fun ClassForm() {
+fun ClassForm(
+    viewModel: ClassFormViewModel = hiltViewModel()
+) {
 
     /* Form State */
-    var className by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    val formState = viewModel.state.value
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -39,8 +38,8 @@ fun ClassForm() {
         ) {
             Text("Class Name")
             OutlinedTextField(
-                value = className,
-                onValueChange = { className = it },
+                value = formState.className,
+                onValueChange = { viewModel.onClassNameChanged(it) },
                 placeholder = { Text("Enter class name") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
@@ -55,8 +54,8 @@ fun ClassForm() {
         ) {
             Text("Description")
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = formState.description,
+                onValueChange = { viewModel.onDescriptionChanged(it) },
                 placeholder = { Text("Enter description") },
                 modifier = Modifier
                     .fillMaxWidth()

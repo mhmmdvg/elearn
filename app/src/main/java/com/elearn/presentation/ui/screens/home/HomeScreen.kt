@@ -25,10 +25,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Newspaper
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.School
+import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.SearchInput
 import com.elearn.presentation.ui.model.TabList
 import com.elearn.presentation.ui.screens.home.components.ChipTabs
@@ -47,7 +50,8 @@ private val tabs = listOf(
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     /* State */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -103,14 +107,14 @@ fun HomeScreen(
                     NewsCard(
                         teacherName = "Enji $index",
                         className = "IX B",
-                        onClick = { /* TODO */ }
+                        onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
                     )
                 }
 
                 1 -> items(newsList.size) { index ->
                     ClassCard(
                         className = "Enji $index",
-                        onClick = { /* TODO */ },
+                        onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) },
                         onMore = { /* TODO */ }
                     )
                 }
@@ -136,9 +140,10 @@ fun HomeScreen(
     }
 }
 
-
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    HomeScreen()
+    val navController = rememberNavController()
+
+    HomeScreen(navController = navController)
 }
