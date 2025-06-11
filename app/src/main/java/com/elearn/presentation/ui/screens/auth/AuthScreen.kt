@@ -1,5 +1,12 @@
 package com.elearn.presentation.ui.screens.auth
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -132,8 +139,17 @@ fun AuthScreen(
                 enabled = !state.isLoading
             )
 
-
-            if (state.isEmailValid) {
+            AnimatedVisibility(
+                visible = state.isEmailValid,
+                enter = slideInVertically(
+                    initialOffsetY = { it / 3 },
+                    animationSpec = tween(300, easing = EaseOutCubic)
+                ) + fadeIn(animationSpec = tween(300)),
+                exit = slideOutVertically(
+                    targetOffsetY = { it / 3 },
+                    animationSpec = tween(200)
+                ) + fadeOut(animationSpec = tween(200))
+            ) {
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
