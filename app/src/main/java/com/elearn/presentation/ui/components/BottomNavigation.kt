@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -63,6 +64,13 @@ fun BottomNavigation(navController: NavController) {
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
+    val responsiveHeight = when {
+        screenHeight < 600.dp -> 48.dp
+        screenHeight < 800.dp -> 56.dp
+        screenHeight < 1000.dp -> 64.dp
+        else -> 72.dp
+    }
+
     if (addMaterial) {
         ModalBottomSheet(
             onDismissRequest = { addMaterial = false },
@@ -81,11 +89,13 @@ fun BottomNavigation(navController: NavController) {
         modifier = Modifier.border(
             width = 1.dp,
             color = MutedColor
-        ),
+        )
+            .height(responsiveHeight),
         containerColor = PrimaryForegroundColor,
     ) {
         navigationItems.forEachIndexed { index, it ->
             NavigationBarItem(
+                modifier = Modifier.size(20.dp),
                 selected = selectedNavigationIndex.intValue == index,
                 onClick = {
                     if (it.title != "Add") {
@@ -100,12 +110,6 @@ fun BottomNavigation(navController: NavController) {
                         imageVector = it.icon,
                         contentDescription = it.title,
                         tint = if (index == selectedNavigationIndex.intValue) PrimaryColor else MutedColor
-                    )
-                },
-                label = {
-                    Text(
-                        text = it.title,
-                        color = if (index == selectedNavigationIndex.intValue) PrimaryColor else MutedColor
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

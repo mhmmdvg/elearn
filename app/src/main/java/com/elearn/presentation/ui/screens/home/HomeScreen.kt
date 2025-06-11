@@ -69,7 +69,7 @@ fun HomeScreen(
             containerColor = Color.White
         ) {
             Column(
-                modifier = Modifier.height(screenHeight * 0.4f)
+                modifier = Modifier.height(screenHeight * 0.45f)
             ) {
                 ClassForm()
             }
@@ -80,12 +80,12 @@ fun HomeScreen(
         LazyColumn(
             modifier = modifier
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             /* Header */
             item {
                 Column(
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     ChipTabs(

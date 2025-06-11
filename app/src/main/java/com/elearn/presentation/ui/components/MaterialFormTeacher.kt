@@ -142,7 +142,7 @@ fun MaterialForm(
                     .height(120.dp),
                 maxLines = 5,
                 singleLine = false,
-                shape = RoundedCornerShape(18),
+                shape = RoundedCornerShape(16),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
                 )

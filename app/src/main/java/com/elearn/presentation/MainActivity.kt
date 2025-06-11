@@ -15,6 +15,11 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,7 +29,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.elearn.data.remote.local.TokenManager
 import com.elearn.presentation.ui.components.BottomNavigation
+import com.elearn.presentation.ui.screens.auth.AuthScreen
 import com.elearn.presentation.ui.screens.details.course.CourseDetailScreen
 import com.elearn.presentation.ui.screens.details.material.MaterialDetailScreen
 import com.elearn.presentation.ui.screens.home.HomeScreen
@@ -32,21 +39,35 @@ import com.elearn.presentation.ui.screens.profile.ProfileScreen
 import com.elearn.presentation.ui.theme.ElearnTheme
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var tokenManager: TokenManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             ElearnTheme {
-                NavGraph()
+                var startDestination by remember { mutableStateOf(Screen.Login.route) }
+
+                LaunchedEffect(Unit) {
+                    val token = tokenManager.getToken()
+
+                    startDestination =
+                        if (!token.isNullOrEmpty()) Screen.Home.route else Screen.Login.route
+                }
+
+                NavGraph(startDestination = startDestination)
             }
         }
     }
 }
 
 @Composable
-fun NavGraph() {
+fun NavGraph(startDestination: String) {
 
     val navController = rememberNavController()
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
@@ -70,7 +91,7 @@ fun NavGraph() {
         }) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = startDestination,
             modifier = Modifier.padding(
                 start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
                 end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
@@ -108,6 +129,17 @@ fun NavGraph() {
                     animationSpec = tween(350)
                 )
             }) {
+
+            composable(route = Screen.Login.route) {
+                AuthScreen(
+                    onNavigateToHome = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(route = Screen.Home.route) {
                 HomeScreen(
                     navController = navController,
@@ -141,10 +173,4 @@ fun NavGraph() {
             }
         }
     }
-}
-
-@Preview(showBackground = false)
-@Composable
-fun MainActivityPreview() {
-    NavGraph()
 }

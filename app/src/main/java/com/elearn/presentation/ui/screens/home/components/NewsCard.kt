@@ -20,8 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.elearn.presentation.ui.model.CardModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
@@ -50,11 +53,11 @@ fun NewsCard(
             .padding(12.dp)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -62,16 +65,20 @@ fun NewsCard(
                             color = MutedColor,
                             shape = CircleShape
                         )
-                        .size(50.dp)
+                        .size(40.dp)
                 )
-                Column {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy((-8).dp, alignment = Alignment.CenterVertically)
+                ) {
                     Text(
                         text = teacherName,
-                        style = MaterialTheme.typography.labelLarge
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
                     )
 
                     Text(
                         text = className,
+                        fontSize = 12.sp,
                         color = MutedForegroundColor
                     )
                 }
@@ -79,7 +86,7 @@ fun NewsCard(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -87,13 +94,20 @@ fun NewsCard(
                             color = MutedColor,
                             shape = RoundedCornerShape(18)
                         )
-                        .width(140.dp)
-                        .height(90.dp)
+                        .width(120.dp)
+                        .height(80.dp)
                 )
 
                 Text(
                     text = content?.body ?: "Apple has launched the iPhone 16 today.",
-                    style = MaterialTheme.typography.bodyMedium
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    style = TextStyle(
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.Both
+                        )
+                    )
                 )
             }
 
@@ -105,6 +119,7 @@ fun NewsCard(
                 Text(
                     text = "See Detail",
                     fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
                     color = PrimaryColor
                 )
             }
