@@ -3,6 +3,7 @@ package com.elearn.di
 import android.content.Context
 import android.content.SharedPreferences
 import com.elearn.data.remote.api.AuthApi
+import com.elearn.data.remote.api.CourseApi
 import com.elearn.data.remote.local.TokenManager
 import com.elearn.utils.AuthInterceptor
 import dagger.Module
@@ -47,6 +48,7 @@ object AppModule {
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl("http://10.0.2.2:3000/api/")
+//            .baseUrl("https://elearn-be.vercel.app/api/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -56,6 +58,12 @@ object AppModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi {
         return retrofit.create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCourseApi(retrofit: Retrofit): CourseApi {
+        return retrofit.create(CourseApi::class.java)
     }
 
 }

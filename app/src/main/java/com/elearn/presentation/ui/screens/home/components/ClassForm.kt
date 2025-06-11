@@ -17,7 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elearn.presentation.ui.components.CustomButton
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
-import com.elearn.presentation.viewmodel.ClassFormViewModel
+import com.elearn.presentation.viewmodel.course.ClassFormViewModel
 
 @Composable
 fun ClassForm(

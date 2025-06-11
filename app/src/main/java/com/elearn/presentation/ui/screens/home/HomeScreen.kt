@@ -4,16 +4,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +47,8 @@ import com.elearn.presentation.ui.screens.home.components.ClassForm
 import com.elearn.presentation.ui.screens.home.components.NewsCard
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.course.ClassListViewModel
+import com.elearn.utils.Resource
 
 private val tabs = listOf(
     TabList(title = "News", icon = Lucide.Newspaper),
@@ -51,6 +60,7 @@ private val tabs = listOf(
 fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
+    courseViewModel: ClassListViewModel = hiltViewModel(),
     navController: NavController
 ) {
     /* State */
@@ -59,6 +69,7 @@ fun HomeScreen(
     var addClass by remember { mutableStateOf(false) }
 
     /* Data */
+    val classes by courseViewModel.classes.collectAsState()
     val newsList = List(5) { index -> "News item ${index + 1}" }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -111,12 +122,66 @@ fun HomeScreen(
                     )
                 }
 
-                1 -> items(newsList.size) { index ->
-                    ClassCard(
-                        className = "Enji $index",
-                        onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) },
-                        onMore = { /* TODO */ }
-                    )
+                1 -> {
+                    when (classes) {
+                        is Resource.Success -> {
+                            classes.data?.data?.let {
+                                items(
+                                    items = it,
+                                    key = { it.id }
+                                ) { item ->
+                                    ClassCard(
+                                        className = item.name,
+                                        onClick = {
+                                            navController.navigate(
+                                                Screen.MaterialDetail.createRoute(
+                                                    item.id
+                                                )
+                                            )
+                                        },
+                                        onMore = { /* TODO */ }
+                                    )
+                                }
+                            }
+                        }
+
+                        is Resource.Loading -> {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        else -> {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = classes.message ?: "Unknown error occured",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        Button(
+                                            onClick = { courseViewModel.fetchClasses() }
+                                        ) {
+                                            Text("Retry")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

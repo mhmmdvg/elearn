@@ -12,5 +12,5 @@ sealed class Screen(val route: String) {
         fun createRoute(courseId: String) = "class_detail/$courseId"
     }
 
-    object Profile: Screen("profile")
+    object Profile : Screen("profile")
 }

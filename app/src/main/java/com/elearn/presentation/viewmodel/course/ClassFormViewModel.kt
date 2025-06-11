@@ -1,4 +1,4 @@
-package com.elearn.presentation.viewmodel
+package com.elearn.presentation.viewmodel.course
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
