@@ -1,5 +1,6 @@
 package com.elearn.presentation.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,17 +26,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.SquarePlus
 import com.composables.icons.lucide.User
+import com.elearn.data.remote.local.TokenManager
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.model.NavigationItem
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.course.ClassListViewModel
 
 private val navigationItems = listOf(
     NavigationItem(
@@ -57,10 +61,14 @@ private val navigationItems = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomNavigation(navController: NavController) {
+fun BottomNavigation(navController: NavController, classViewModel: ClassListViewModel = hiltViewModel()) {
     val selectedNavigationIndex = rememberSaveable { mutableIntStateOf(0) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var addMaterial by remember { mutableStateOf(false) }
+
+    val token = classViewModel.getToken()
+
+    Log.d("check", token.toString())
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -121,10 +129,10 @@ fun BottomNavigation(navController: NavController) {
     }
 }
 
-@Preview(showBackground = false)
-@Composable
-fun BottomNavigationPreview() {
-    val navController = rememberNavController()
-
-    BottomNavigation(navController)
-}
+//@Preview(showBackground = false)
+//@Composable
+//fun BottomNavigationPreview() {
+//    val navController = rememberNavController()
+//
+//    BottomNavigation(navController)
+//}

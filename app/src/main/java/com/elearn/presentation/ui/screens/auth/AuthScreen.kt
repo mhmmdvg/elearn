@@ -142,11 +142,11 @@ fun AuthScreen(
             AnimatedVisibility(
                 visible = state.isEmailValid,
                 enter = slideInVertically(
-                    initialOffsetY = { it / 3 },
+                    initialOffsetY = { it / -3 },
                     animationSpec = tween(300, easing = EaseOutCubic)
                 ) + fadeIn(animationSpec = tween(300)),
                 exit = slideOutVertically(
-                    targetOffsetY = { it / 3 },
+                    targetOffsetY = { it / -3 },
                     animationSpec = tween(200)
                 ) + fadeOut(animationSpec = tween(200))
             ) {
