@@ -34,12 +34,15 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.SquarePlus
 import com.composables.icons.lucide.User
 import com.elearn.data.remote.local.TokenManager
+import com.elearn.domain.model.UserSharedPreferences
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.model.NavigationItem
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
+import com.elearn.utils.JwtConvert.decodeToken
+import org.json.JSONObject
 
 private val navigationItems = listOf(
     NavigationItem(
@@ -50,7 +53,7 @@ private val navigationItems = listOf(
     NavigationItem(
         title = "Add",
         icon = Lucide.SquarePlus,
-        route = Screen.Login.route
+        route = "#"
     ),
     NavigationItem(
         title = "Profile",
@@ -65,10 +68,10 @@ fun BottomNavigation(navController: NavController, classViewModel: ClassListView
     val selectedNavigationIndex = rememberSaveable { mutableIntStateOf(0) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var addMaterial by remember { mutableStateOf(false) }
+    var joinClass by remember { mutableStateOf(false) }
 
-    val token = classViewModel.getToken()
+    val userInfo: JSONObject? = decodeToken(classViewModel.getToken().toString())
 
-    Log.d("check", token.toString())
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -93,6 +96,20 @@ fun BottomNavigation(navController: NavController, classViewModel: ClassListView
         }
     }
 
+    if (joinClass) {
+        ModalBottomSheet(
+            onDismissRequest = { joinClass = false },
+            sheetState = sheetState,
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier.height(screenHeight * 0.2f)
+            ) {
+                JoinClassForm()
+            }
+        }
+    }
+
     NavigationBar(
         modifier = Modifier.border(
             width = 1.dp,
@@ -109,9 +126,15 @@ fun BottomNavigation(navController: NavController, classViewModel: ClassListView
                     if (it.title != "Add") {
                         selectedNavigationIndex.intValue = index
                         navController.navigate(it.route)
-                    } else {
-                       addMaterial = true
+                        return@NavigationBarItem
                     }
+
+                    if (userInfo?.getString("role") == "teacher") {
+                        addMaterial = true
+                        return@NavigationBarItem
+                    }
+
+                    joinClass = true
                 },
                 icon = {
                     Icon(

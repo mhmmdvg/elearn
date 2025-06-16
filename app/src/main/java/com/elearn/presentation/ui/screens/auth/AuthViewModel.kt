@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elearn.data.remote.repository.AuthRepository
 import com.elearn.domain.model.LoginResponse
+import com.elearn.domain.model.LogoutResponse
 import com.elearn.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,9 @@ class AuthViewModel @Inject constructor(
 
     private val _authState = MutableStateFlow<Resource<LoginResponse>>(Resource.Success(null))
     val authState: StateFlow<Resource<LoginResponse>> = _authState.asStateFlow()
+
+    private val _authLogoutState = MutableStateFlow<Resource<LogoutResponse>>(Resource.Success(null))
+    val authLogoutState: StateFlow<Resource<LogoutResponse>> = _authLogoutState.asStateFlow()
 
 
     fun onEmailChanged(email: String) {
@@ -99,6 +103,25 @@ class AuthViewModel @Inject constructor(
                 _authState.value = Resource.Error(error.message ?: "Unknown Error")
             }
         }
+    }
+
+    fun logout() {
+       viewModelScope.launch {
+           _authLogoutState.value = Resource.Loading()
+
+           try {
+               authRepository.logout().fold(
+                   onSuccess = {
+                       _authLogoutState.value = Resource.Success(it)
+                   },
+                   onFailure = {
+                       _authLogoutState.value = Resource.Error(it.message ?: "Unknown Error")
+                   }
+               )
+           } catch (error: Exception) {
+               _authLogoutState.value = Resource.Error(error.message ?: "Unknown Error")
+           }
+       }
     }
 
     private fun isValidEmail(email: String): Boolean {

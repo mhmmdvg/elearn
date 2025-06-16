@@ -23,9 +23,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Lucide
 import com.elearn.presentation.ui.components.CacheImage
+import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
@@ -37,7 +39,7 @@ private val settingsList = listOf<String>(
 )
 
 @Composable
-fun ProfileScreen(modifier: Modifier = Modifier) {
+fun ProfileScreen(modifier: Modifier = Modifier, viewModel: AuthViewModel = hiltViewModel()) {
 
     Column(
         modifier = modifier
@@ -97,7 +99,7 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
 
         Text(
             text = "Settings",
-            fontSize = 18.sp
+            fontSize = 14.sp
         )
 
         settingsList.forEach { it ->
@@ -126,6 +128,38 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+
+        Text(
+            text = "Account",
+            fontSize = 14.sp
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { viewModel.logout() }
+                )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Log out",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Icon(
+                    imageVector = Lucide.ChevronRight,
+                    contentDescription = "open"
+                )
+            }
+        }
+
+
     }
 }
 

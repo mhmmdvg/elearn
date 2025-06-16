@@ -13,7 +13,6 @@ data class CourseData(
     val isActive: Boolean
 )
 
-
 data class CourseJoinResponse(
     val message: String,
     val data: CourseJoinData
