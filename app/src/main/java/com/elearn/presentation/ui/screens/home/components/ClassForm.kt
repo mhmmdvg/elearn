@@ -11,22 +11,46 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.elearn.domain.model.CreateCourseRequest
 import com.elearn.presentation.ui.components.CustomButton
+import com.elearn.presentation.ui.screens.home.HomeEvent
+import com.elearn.presentation.ui.screens.home.HomeEventBus
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
+import com.elearn.presentation.viewmodel.course.ClassFormViewModel
+import com.elearn.presentation.viewmodel.course.ClassListViewModel
+import com.elearn.utils.Resource
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
-fun ClassForm() {
+fun ClassForm(
+    viewModel: ClassFormViewModel = hiltViewModel(),
+    classListViewModel: ClassListViewModel = hiltViewModel(),
+    onDismiss: () -> Unit = {}
+) {
 
     /* Form State */
-    var className by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    val formState = viewModel.state.value
+    val createClassState by classListViewModel.createClass.collectAsState()
+    val isLoading = createClassState is Resource.Loading
+
+    LaunchedEffect(Unit) {
+        HomeEventBus.events.collectLatest { event ->
+            when (event) {
+                is HomeEvent.CreatedClass -> onDismiss()
+                else -> {}
+            }
+        }
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -39,8 +63,8 @@ fun ClassForm() {
         ) {
             Text("Class Name")
             OutlinedTextField(
-                value = className,
-                onValueChange = { className = it },
+                value = formState.className,
+                onValueChange = remember { { viewModel.onClassNameChanged(it) } },
                 placeholder = { Text("Enter class name") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
@@ -55,8 +79,8 @@ fun ClassForm() {
         ) {
             Text("Description")
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = formState.description,
+                onValueChange = remember { { viewModel.onDescriptionChanged(it) } },
                 placeholder = { Text("Enter description") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -72,7 +96,16 @@ fun ClassForm() {
 
         CustomButton(
             modifier = Modifier.fillMaxWidth(),
-            onClick = { /* TODO */ },
+            isLoading = isLoading,
+            enabled = !isLoading,
+            onClick = {
+                classListViewModel.createClass(
+                    CreateCourseRequest(
+                        name = formState.className,
+                        description = formState.description
+                    )
+                )
+            },
             text = "Save"
         )
     }

@@ -36,27 +36,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MaterialForm() {
+fun MaterialForm(
+    viewModel: MaterialFormViewModel = hiltViewModel()
+) {
     /* State Config */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     /* Form */
-    var className by remember { mutableStateOf("") }
-    var materialName by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedFileName by remember { mutableStateOf("No file selected") }
+    val formState = viewModel.state.value
 
     /* Sheet */
     var selectClass by remember { mutableStateOf(false) }
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val context = LocalContext.current
+
 
     /* Bottom Sheet */
     if (selectClass) {
@@ -116,8 +118,8 @@ fun MaterialForm() {
         ) {
             Text("Material Name")
             OutlinedTextField(
-                value = materialName,
-                onValueChange = { materialName = it },
+                value = formState.materialName,
+                onValueChange = { viewModel.onMaterialNameChanged(it) },
                 placeholder = { Text("Enter material name") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
@@ -132,15 +134,15 @@ fun MaterialForm() {
         ) {
             Text("Description")
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = formState.description,
+                onValueChange = { viewModel.onDescriptionChanged(it) },
                 placeholder = { Text("Enter description") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp),
                 maxLines = 5,
                 singleLine = false,
-                shape = RoundedCornerShape(18),
+                shape = RoundedCornerShape(16),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
                 )
@@ -150,13 +152,16 @@ fun MaterialForm() {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("Uploaded File: $selectedFileName", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Uploaded File: ${formState.selectedFileName}",
+                style = MaterialTheme.typography.bodySmall
+            )
 
             Button(
                 onClick = {
                     Toast.makeText(context, "File picker not implemented", Toast.LENGTH_SHORT)
                         .show()
-                    selectedFileName = "example_file.pdf"
+                    viewModel.onSelectedFileChanged("example_file.pdf")
                 }, colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryColor
                 )

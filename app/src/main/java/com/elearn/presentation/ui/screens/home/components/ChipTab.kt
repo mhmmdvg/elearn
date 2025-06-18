@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Newspaper
 import com.elearn.presentation.ui.model.TabList
@@ -102,7 +103,7 @@ fun Chip(
             .background(color = backgroundColor, shape = CircleShape)
             .clip(shape = CircleShape)
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(8.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -111,7 +112,7 @@ fun Chip(
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
         ) {
             Icon(
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(14.dp),
                 imageVector = icon,
                 contentDescription = title,
                 tint = iconColor
@@ -119,6 +120,7 @@ fun Chip(
             Text(
                 text = title,
                 color = contentColor,
+                fontSize = 12.sp,
                 fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal
             )
         }
