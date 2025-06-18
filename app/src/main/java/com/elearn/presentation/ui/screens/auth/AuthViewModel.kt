@@ -1,23 +1,28 @@
 package com.elearn.presentation.ui.screens.auth
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elearn.data.remote.local.TokenManager
 import com.elearn.data.remote.repository.AuthRepository
 import com.elearn.domain.model.LoginResponse
 import com.elearn.domain.model.LogoutResponse
+import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
     private val _state = mutableStateOf(AuthState())
     val state: State<AuthState> = _state
@@ -27,6 +32,26 @@ class AuthViewModel @Inject constructor(
 
     private val _authLogoutState = MutableStateFlow<Resource<LogoutResponse>>(Resource.Success(null))
     val authLogoutState: StateFlow<Resource<LogoutResponse>> = _authLogoutState.asStateFlow()
+
+
+    private var _cachedUserInfo: JSONObject? = null
+    private var _lastTokenHash: Int? = null
+
+    fun getToken(): String? {
+        return tokenManager.getToken()
+    }
+
+    fun getUserInfo(): JSONObject? {
+        val token = getToken()
+        val currentTokenHash = token.hashCode()
+
+        if (_cachedUserInfo == null || _lastTokenHash != currentTokenHash) {
+            _cachedUserInfo = token?.let { decodeToken(it) }
+            _lastTokenHash = currentTokenHash
+        }
+
+        return _cachedUserInfo
+    }
 
 
     fun onEmailChanged(email: String) {

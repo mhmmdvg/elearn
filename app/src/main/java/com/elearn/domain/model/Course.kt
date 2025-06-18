@@ -13,6 +13,28 @@ data class CourseData(
     val isActive: Boolean
 )
 
+data class CreateCourseRequest(
+    val name: String,
+    val description: String?
+)
+
+data class CourseJoinRequest(
+    val code: String
+)
+
+data class CreateCourseResponse(
+    val message: String,
+    val data: CreateCourseData
+)
+
+data class CreateCourseData(
+    val id: String,
+    val code: String,
+    val name: String,
+    val description: String,
+    val teacherId: String,
+)
+
 data class CourseJoinResponse(
     val message: String,
     val data: CourseJoinData
@@ -20,7 +42,7 @@ data class CourseJoinResponse(
 
 data class CourseJoinData(
     val enrollmentId: String,
-    val classField: CourseClassData,
+    val course: CourseClassData,
     val enrollmentDate: String
 )
 

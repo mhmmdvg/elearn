@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,6 +33,7 @@ import com.elearn.presentation.ui.components.BottomNavigation
 import com.elearn.presentation.ui.screens.auth.AuthScreen
 import com.elearn.presentation.ui.screens.details.course.CourseDetailScreen
 import com.elearn.presentation.ui.screens.details.material.MaterialDetailScreen
+import com.elearn.presentation.ui.screens.editprofile.EditProfileScreen
 import com.elearn.presentation.ui.screens.home.HomeScreen
 import com.elearn.presentation.ui.screens.profile.ProfileScreen
 import com.elearn.presentation.ui.theme.ElearnTheme
@@ -164,12 +164,27 @@ fun NavGraph(startDestination: String) {
                 val courseId = backstackEntry.arguments?.getString("courseDetail") ?: ""
                 CourseDetailScreen(
                     modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
-                    courseId = courseId, onBackClick = { navController.popBackStack() }
+                    courseId = courseId, navController = navController
                 )
             }
 
             composable(route = Screen.Profile.route) {
-                ProfileScreen(modifier = Modifier.padding(top = innerPadding.calculateTopPadding()))
+                ProfileScreen(
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    navController = navController,
+                )
+            }
+
+            composable(
+                route = Screen.EditProfile.route,
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                ) {
+                val userId = it.arguments?.getString("userId") ?: ""
+                EditProfileScreen(
+                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
+                    navController = navController,
+                    userId = userId
+                )
             }
         }
     }

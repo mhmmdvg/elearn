@@ -1,3 +1,4 @@
+
 package com.elearn.presentation.ui.screens.auth
 
 import androidx.compose.animation.AnimatedVisibility
@@ -67,7 +68,7 @@ fun AuthScreen(
                     if (res.data?.token != null) onNavigateToHome()
                 }
             }
-            else -> null
+            else -> {}
         }
     }
 

@@ -17,13 +17,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elearn.presentation.ui.screens.home.HomeEvent
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
 
 @Composable
 fun JoinClassForm(
-    viewModel: ClassListViewModel = hiltViewModel()
+    viewModel: ClassListViewModel = hiltViewModel(),
+    isLoading: Boolean = false
 ) {
     var code by remember { mutableStateOf("") }
 
@@ -50,6 +52,8 @@ fun JoinClassForm(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
+            isLoading = isLoading,
+            enabled = !isLoading,
             onClick = {
                 viewModel.joinClass(code)
             },

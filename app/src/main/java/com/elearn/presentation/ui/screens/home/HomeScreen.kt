@@ -1,5 +1,6 @@
 package com.elearn.presentation.ui.screens.home
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,8 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -48,7 +53,10 @@ import com.elearn.presentation.ui.screens.home.components.NewsCard
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
+import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
+import kotlinx.coroutines.flow.collectLatest
+import org.json.JSONObject
 
 private val tabs = listOf(
     TabList(title = "News", icon = Lucide.Newspaper),
@@ -72,6 +80,7 @@ fun HomeScreen(
     val classes by courseViewModel.classes.collectAsState()
     val newsList = List(5) { index -> "News item ${index + 1}" }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val userInfo: JSONObject? = decodeToken(viewModel.getToken().toString())
 
     if (addClass) {
         ModalBottomSheet(
@@ -82,7 +91,18 @@ fun HomeScreen(
             Column(
                 modifier = Modifier.height(screenHeight * 0.45f)
             ) {
-                ClassForm()
+                Text(
+                    text = "Create New Class",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp, horizontal = 12.dp)
+                )
+
+                ClassForm(
+                    onDismiss = { addClass = false }
+                )
             }
         }
     }
@@ -120,6 +140,7 @@ fun HomeScreen(
                         className = "IX B",
                         onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
                     )
+
                 }
 
                 1 -> {
@@ -134,7 +155,7 @@ fun HomeScreen(
                                         className = item.name,
                                         onClick = {
                                             navController.navigate(
-                                                Screen.MaterialDetail.createRoute(
+                                                Screen.CourseDetail.createRoute(
                                                     item.id
                                                 )
                                             )
@@ -186,7 +207,7 @@ fun HomeScreen(
             }
         }
 
-        if (state.selectedTabIndex == 1) {
+        if (state.selectedTabIndex == 1 && userInfo?.getString("role") == "teacher") {
             FloatingActionButton(
                 onClick = { addClass = true },
                 modifier = Modifier

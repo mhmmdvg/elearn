@@ -11,13 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.elearn.presentation.ui.components.CustomButton
 
 @Composable
 fun CourseDetailScreen(
     modifier: Modifier = Modifier,
     courseId: String,
-    onBackClick: () -> Unit
+    navController: NavController
 ) {
 
     Column(
@@ -34,7 +35,13 @@ fun CourseDetailScreen(
         )
         CustomButton(
             text = "Back",
-            onClick = onBackClick
+            onClick = {
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("shouldRefresh", true)
+
+                navController.popBackStack()
+            }
         )
     }
 }
