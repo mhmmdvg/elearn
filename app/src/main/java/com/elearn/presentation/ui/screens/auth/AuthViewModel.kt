@@ -5,6 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.elearn.data.remote.CacheManager
 import com.elearn.data.remote.local.TokenManager
 import com.elearn.data.remote.repository.AuthRepository
 import com.elearn.domain.model.LoginResponse
@@ -22,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val cacheManager: CacheManager
 ) : ViewModel() {
     private val _state = mutableStateOf(AuthState())
     val state: State<AuthState> = _state
@@ -137,6 +139,7 @@ class AuthViewModel @Inject constructor(
            try {
                authRepository.logout().fold(
                    onSuccess = {
+                       cacheManager.invalidateAllCaches()
                        _authLogoutState.value = Resource.Success(it)
                    },
                    onFailure = {

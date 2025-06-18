@@ -55,6 +55,10 @@ class UserRepository @Inject constructor(
         userCache.remove(userId)
     }
 
+    fun invalidateCaches() {
+        userCache.clear()
+    }
+
     fun getCachedUserInfo(id: String): UserResponse? {
         val cachedData = userCache[id]
         return if (cachedData != null && isCacheValid(cachedData.timestamp)) {

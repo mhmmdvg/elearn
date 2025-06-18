@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -57,6 +59,7 @@ fun ClassForm(
         modifier = Modifier
             .fillMaxSize()
             .padding(12.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -69,7 +72,9 @@ fun ClassForm(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
+                    focusedTextColor = PrimaryColor,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = MutedColor,
                 )
             )
         }
@@ -89,7 +94,9 @@ fun ClassForm(
                 singleLine = false,
                 shape = RoundedCornerShape(18),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
+                    focusedTextColor = PrimaryColor,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = MutedColor,
                 )
             )
         }
