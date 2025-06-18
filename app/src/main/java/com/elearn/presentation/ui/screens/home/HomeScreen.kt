@@ -89,7 +89,7 @@ fun HomeScreen(
             containerColor = Color.White
         ) {
             Column(
-                modifier = Modifier.height(screenHeight * 0.45f)
+                modifier = Modifier.height(screenHeight * 0.55f)
             ) {
                 Text(
                     text = "Create New Class",

@@ -112,7 +112,9 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
+                    focusedTextColor = PrimaryColor,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = MutedColor,
                 )
             )
         }
@@ -131,7 +133,9 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
+                    focusedTextColor = PrimaryColor,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = MutedColor,
                 )
             )
         }
