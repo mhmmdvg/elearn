@@ -1,7 +1,12 @@
 package com.elearn.data.remote.repository
 
+import android.util.Log
 import com.elearn.data.remote.api.UserApi
 import com.elearn.domain.model.ErrorResponse
+import com.elearn.domain.model.UserDescriptionReq
+import com.elearn.domain.model.UserDescriptionRes
+import com.elearn.domain.model.UserNameRequest
+import com.elearn.domain.model.UserNameResponse
 import com.elearn.domain.model.UserResponse
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -44,6 +49,42 @@ class UserRepository @Inject constructor(
                 } catch (e: Exception) {
                     ErrorResponse("Failed to parse error response")
                 }
+                Result.failure(Exception(errorResponse.error))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
+    suspend fun putUserName(id: String, req: UserNameRequest): Result<UserNameResponse> {
+        return try {
+            val res = userApi.updateUserName(id, req)
+
+            if (res.isSuccessful) {
+                res.body()?.let {
+                    Result.success(it)
+                } ?: Result.failure(Exception("Empty response body"))
+            } else {
+                val errorBody = res.errorBody()?.string()
+                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+                Result.failure(Exception(errorResponse.error))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
+    suspend fun putUserDescription(id: String, req: UserDescriptionReq): Result<UserDescriptionRes> {
+        return try {
+            val res = userApi.updateDescription(id, req)
+
+            if (res.isSuccessful) {
+                res.body()?.let {
+                    Result.success(it)
+                } ?: Result.failure(Exception("Empty response body"))
+            } else {
+                val errorBody = res.errorBody()?.string()
+                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
                 Result.failure(Exception(errorResponse.error))
             }
         } catch (error: Exception) {

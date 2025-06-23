@@ -33,7 +33,6 @@ import com.composables.icons.lucide.SquarePlus
 import com.composables.icons.lucide.User
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.model.NavigationItem
-import com.elearn.presentation.ui.screens.home.HomeEvent
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
@@ -74,6 +73,7 @@ fun BottomNavigation(
     val joinState by courseViewModel.joinClass.collectAsState()
     var joinLoading by remember { mutableStateOf(false) }
 
+
     val userInfo: JSONObject? = decodeToken(courseViewModel.getToken().toString())
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -96,9 +96,11 @@ fun BottomNavigation(
                     courseViewModel.resetJoinClassState()
                 }
             }
+
             is Resource.Loading -> {
                 joinLoading = true
             }
+
             is Resource.Error -> {
                 Log.e("join-error", "Join class error: ${joinState.message}")
             }
@@ -178,11 +180,3 @@ fun BottomNavigation(
         }
     }
 }
-
-//@Preview(showBackground = false)
-//@Composable
-//fun BottomNavigationPreview() {
-//    val navController = rememberNavController()
-//
-//    BottomNavigation(navController)
-//}
