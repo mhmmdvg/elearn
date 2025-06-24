@@ -74,7 +74,7 @@ fun NavGraph(startDestination: String) {
     val currentRoute = currentBackStackEntry?.destination?.route
 
     val shouldShowBottomNav = when (currentRoute) {
-        Screen.Login.route, Screen.CourseDetail.route, Screen.MaterialDetail.route -> false
+        Screen.Login.route, Screen.CourseDetail.route, Screen.MaterialDetail.route, Screen.EditProfile.route -> false
         null -> false
         else -> !currentRoute.startsWith(Screen.Home.route + "/")
     }
