@@ -1,6 +1,5 @@
 package com.elearn.presentation.ui.screens.profile
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,9 +36,7 @@ import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
-import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
-import org.json.JSONObject
 
 private val settingsList = listOf(
     "Application",
@@ -57,9 +53,7 @@ fun ProfileScreen(
 
     /* State */
     val authState by viewModel.authLogoutState.collectAsState()
-
-    /* Data */
-    val userInfo = remember(viewModel.getToken()) { viewModel.getUserInfo() }
+    val userInfoState by viewModel.userInfoState.collectAsState()
 
     LaunchedEffect(authState) {
         when (authState) {
@@ -89,7 +83,7 @@ fun ProfileScreen(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = true)
                 ) {
-                    userInfo?.getString("userId")?.let {
+                    viewModel.getUserId()?.let {
                         navController.navigate(Screen.EditProfile.createRoute(it))
                     }
                 }
@@ -108,8 +102,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(64.dp)
                             .background(
-                                color = MutedColor,
-                                shape = CircleShape
+                                color = MutedColor, shape = CircleShape
                             )
                     ) {
                         CacheImage(
@@ -122,29 +115,25 @@ fun ProfileScreen(
                     }
                     Column {
                         Text(
-                            text = "${userInfo?.getString("firstName")} ${userInfo?.getString("lastName")}",
+                            text = "${userInfoState.data?.data?.firstName} ${userInfoState.data?.data?.lastName}",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "View Profile",
-                            color = MutedForegroundColor
+                            text = "View Profile", color = MutedForegroundColor
                         )
                     }
                 }
 
                 Icon(
-                    imageVector = Lucide.ChevronRight,
-                    contentDescription = "open"
+                    imageVector = Lucide.ChevronRight, contentDescription = "open"
                 )
             }
 
         }
 
         Text(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            text = "Settings",
-            fontSize = 14.sp
+            modifier = Modifier.padding(horizontal = 12.dp), text = "Settings", fontSize = 14.sp
         )
 
         settingsList.forEach { it ->
@@ -154,31 +143,24 @@ fun ProfileScreen(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = true),
-                        onClick = { /* TODO */ }
-                    )
-                    .padding(12.dp)
-            ) {
+                        onClick = { /* TODO */ })
+                    .padding(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = it,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
+                        text = it, fontSize = 18.sp, fontWeight = FontWeight.Medium
                     )
                     Icon(
-                        imageVector = Lucide.ChevronRight,
-                        contentDescription = "open"
+                        imageVector = Lucide.ChevronRight, contentDescription = "open"
                     )
                 }
             }
         }
 
         Text(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            text = "Account",
-            fontSize = 14.sp
+            modifier = Modifier.padding(horizontal = 12.dp), text = "Account", fontSize = 14.sp
         )
 
         Box(
@@ -187,28 +169,15 @@ fun ProfileScreen(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = true),
-                    onClick = { viewModel.logout() }
-                )
-                .padding(12.dp)
-        ) {
+                    onClick = { viewModel.logout() })
+                .padding(12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Log out",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
+                    text = "Log out", fontSize = 18.sp, fontWeight = FontWeight.Medium
                 )
             }
         }
-
-
     }
 }
-
-//@Preview(showBackground = false)
-//@Composable
-//fun ProfileScreenPreview() {
-//    ProfileScreen()
-//}

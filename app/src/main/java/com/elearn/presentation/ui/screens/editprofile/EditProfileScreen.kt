@@ -1,6 +1,5 @@
 package com.elearn.presentation.ui.screens.editprofile
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -10,25 +9,29 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,28 +41,82 @@ import com.composables.icons.lucide.Lucide
 import com.elearn.presentation.ui.components.ButtonVariant
 import com.elearn.presentation.ui.components.CacheImage
 import com.elearn.presentation.ui.components.CustomButton
+import com.elearn.presentation.ui.screens.auth.AuthViewModel
+import com.elearn.presentation.ui.screens.editprofile.components.EditDescForm
+import com.elearn.presentation.ui.screens.editprofile.components.EditNameForm
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
-import com.elearn.presentation.ui.theme.PrimaryColor
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
     modifier: Modifier = Modifier,
     viewModel: EditProfileViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
     navController: NavController,
     userId: String
 ) {
 
+    /* State */
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var editName by remember { mutableStateOf(false) }
+    var editDescription by remember { mutableStateOf(false) }
+
+    val userInfoState by authViewModel.userInfoState.collectAsState()
+
     /* Form State */
     val state = viewModel.state.value
 
-    /* Data */
-    val userInfo by viewModel.userInfoState.collectAsState()
 
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
-    LaunchedEffect(userId) {
-        if (userId.isNotBlank()) {
-            viewModel.getUserInfo(userId)
+//    LaunchedEffect(userId) {
+//        authViewModel.getCurrentUserDetails()
+//    }
+
+    LaunchedEffect(userInfoState) {
+        userInfoState.data?.let {
+            viewModel.populateFormFields(it)
+        }
+    }
+
+    if (editName) {
+        ModalBottomSheet(
+            onDismissRequest = { editName = false },
+            sheetState = sheetState,
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier.height(screenHeight * 0.95f)
+            ) {
+                EditNameForm(
+                    userId = userId,
+                    onSuccess = {
+                        authViewModel.getCurrentUserDetails()
+                        editName = false
+                    }
+                )
+            }
+        }
+    }
+
+    if (editDescription) {
+        ModalBottomSheet(
+            onDismissRequest = { editDescription = false },
+            sheetState = sheetState,
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier.height(screenHeight * 0.95f)
+            ) {
+                EditDescForm(
+                    userId = userId,
+                    onSuccess = {
+                        authViewModel.getCurrentUserDetails()
+                        editDescription = false
+                    }
+                )
+            }
         }
     }
 
@@ -86,7 +143,7 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(CircleShape),
-                    imageUrl = "https://github.com/shadcn.png",
+                    imageUrl = userInfoState.data?.data?.imageUrl ?: "https://github.com/shadcn.png",
                     description = "Avatar",
                 )
             }
@@ -99,45 +156,43 @@ fun EditProfileScreen(
         }
 
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "First Name", fontWeight = FontWeight.SemiBold
+                modifier = Modifier.padding(horizontal = 12.dp),
+                text = "Name",
+                fontWeight = FontWeight.SemiBold
             )
-            OutlinedTextField(
-                value = state.firstName,
-                onValueChange = remember { { viewModel.onFirstNameChanged(it) } },
-                placeholder = { Text("Enter your first name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = PrimaryColor,
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = MutedColor,
-                )
-            )
-        }
 
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "Last Name", fontWeight = FontWeight.SemiBold
-            )
-            OutlinedTextField(
-                value = state.lastName,
-                onValueChange = remember { { viewModel.onLastNameChanged(it) } },
-                placeholder = { Text("Enter your last name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = PrimaryColor,
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = MutedColor,
-                )
-            )
+            Box(
+                modifier = Modifier
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true)
+                    ) {
+                        editName = true
+                    }
+                    .padding(vertical = 4.dp, horizontal = 12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${state.firstName} ${state.lastName}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MutedForegroundColor
+                    )
+
+                    Icon(
+                        imageVector = Lucide.ChevronRight,
+                        contentDescription = "open",
+                    )
+                }
+            }
         }
 
         Column(
@@ -155,7 +210,9 @@ fun EditProfileScreen(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = true)
-                    ) { }
+                    ) {
+                        editDescription = true
+                    }
                     .padding(vertical = 4.dp, horizontal = 12.dp),
             ) {
                 Row(
@@ -164,7 +221,7 @@ fun EditProfileScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Tell your story",
+                        text = userInfoState.data?.data?.description ?: "Tell your story",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = MutedForegroundColor

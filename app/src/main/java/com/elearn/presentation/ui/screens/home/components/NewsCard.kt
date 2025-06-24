@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.elearn.domain.model.TeacherData
 import com.elearn.presentation.ui.components.CacheImage
 import com.elearn.presentation.ui.model.CardModel
 import com.elearn.presentation.ui.theme.MutedColor
@@ -38,7 +39,7 @@ import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 
 @Composable
 fun NewsCard(
-    teacherName: String,
+    teacher: TeacherData? = null,
     className: String,
     content: CardModel? = null,
     onClick: () -> Unit
@@ -77,7 +78,7 @@ fun NewsCard(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape),
-                        imageUrl = "https://github.com/shadcn.png",
+                        imageUrl = teacher?.imageUrl ?: "https://github.com/shadcn.png",
                         description = "Avatar",
                     )
                 }
@@ -85,7 +86,7 @@ fun NewsCard(
                     verticalArrangement = Arrangement.spacedBy((-8).dp, alignment = Alignment.CenterVertically)
                 ) {
                     Text(
-                        text = teacherName,
+                        text = "${teacher?.firstName} ${teacher?.lastName}",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -109,7 +110,7 @@ fun NewsCard(
                         .clip(
                             RoundedCornerShape(8.dp)
                         ),
-                    imageUrl = "https://images.unsplash.com/photo-1511984804822-e16ba72f5848?q=80&w=2048&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                    imageUrl = content?.image ?: "https://images.unsplash.com/photo-1511984804822-e16ba72f5848?q=80&w=2048&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" ,
                     description = "cover-image",
                 )
 

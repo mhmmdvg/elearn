@@ -21,7 +21,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,6 +43,7 @@ import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.School
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.SearchInput
+import com.elearn.presentation.ui.model.CardModel
 import com.elearn.presentation.ui.model.TabList
 import com.elearn.presentation.ui.screens.home.components.ChipTabs
 import com.elearn.presentation.ui.screens.home.components.ClassCard
@@ -53,9 +52,9 @@ import com.elearn.presentation.ui.screens.home.components.NewsCard
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
+import com.elearn.presentation.viewmodel.material.MaterialViewModel
 import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
-import kotlinx.coroutines.flow.collectLatest
 import org.json.JSONObject
 
 private val tabs = listOf(
@@ -69,6 +68,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     courseViewModel: ClassListViewModel = hiltViewModel(),
+    materialViewModel: MaterialViewModel = hiltViewModel(),
     navController: NavController
 ) {
     /* State */
@@ -78,9 +78,12 @@ fun HomeScreen(
 
     /* Data */
     val classes by courseViewModel.classes.collectAsState()
+    val materials by materialViewModel.materials.collectAsState()
     val newsList = List(5) { index -> "News item ${index + 1}" }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val userInfo: JSONObject? = decodeToken(viewModel.getToken().toString())
+
+    Log.d("materials", materials.data?.data?.materials.toString())
 
     if (addClass) {
         ModalBottomSheet(
@@ -134,13 +137,72 @@ fun HomeScreen(
 
             /* Card */
             when (state.selectedTabIndex) {
-                0 -> items(newsList.size) { index ->
-                    NewsCard(
-                        teacherName = "Enji $index",
-                        className = "IX B",
-                        onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
-                    )
+                0 -> {
+                    when (materials) {
+                        is Resource.Success -> {
+                            materials.data?.data?.materials?.let {
+                                items(
+                                    items = it,
+                                    key = { it.id }
+                                ) { item ->
+                                    NewsCard(
+                                        teacher = item.teacher,
+                                        className = item.course.name,
+                                        content = CardModel(
+                                            image = item.fileUrl ?: "",
+                                            body = item.description
+                                        ),
+                                        onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
+                                    )
+                                }
+                            }
+                        }
 
+                        is Resource.Loading -> {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        else -> {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = materials.message ?: "Unknown error occured",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        Button(
+                                            onClick = { materialViewModel.fetchMaterials() }
+                                        ) {
+                                            Text("Retry")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+//                    items(newsList.size) { index ->
+//                        NewsCard(
+//                            teacherName = "Enji $index",
+//                            className = "IX B",
+//                            onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
+//                        )
+//
+//                    }
                 }
 
                 1 -> {
