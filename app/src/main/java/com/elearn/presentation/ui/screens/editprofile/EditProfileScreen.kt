@@ -1,5 +1,9 @@
 package com.elearn.presentation.ui.screens.editprofile
 
+import AppBar
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -17,6 +21,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -31,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +52,9 @@ import com.elearn.presentation.ui.screens.editprofile.components.EditDescForm
 import com.elearn.presentation.ui.screens.editprofile.components.EditNameForm
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
+import com.elearn.utils.Resource
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,23 +65,28 @@ fun EditProfileScreen(
     navController: NavController,
     userId: String
 ) {
+    val context = LocalContext.current
 
     /* State */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var editName by remember { mutableStateOf(false) }
     var editDescription by remember { mutableStateOf(false) }
+    val updateImageState by viewModel.updateProfileImageState.collectAsState()
+
+    val imagePickerLaunch = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            viewModel.updateProfileImage(context, userId, selectedUri)
+        }
+    }
 
     val userInfoState by authViewModel.userInfoState.collectAsState()
 
     /* Form State */
     val state = viewModel.state.value
 
-
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-
-//    LaunchedEffect(userId) {
-//        authViewModel.getCurrentUserDetails()
-//    }
 
     LaunchedEffect(userInfoState) {
         userInfoState.data?.let {
@@ -120,120 +134,130 @@ fun EditProfileScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column {
+        AppBar(
+            title = "Profile",
+            onBackClick = {
+                navController.popBackStack()
+            }
+        )
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = modifier
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .background(
-                        color = MutedColor, shape = CircleShape
-                    )
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                CacheImage(
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape),
-                    imageUrl = userInfoState.data?.data?.imageUrl ?: "https://github.com/shadcn.png",
-                    description = "Avatar",
+                        .size(120.dp)
+                        .background(
+                            color = MutedColor, shape = CircleShape
+                        )
+                ) {
+                    CacheImage(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        imageUrl = userInfoState.data?.data?.imageUrl
+                            ?: "https://github.com/shadcn.png",
+                        description = "Avatar",
+                    )
+                }
+
+                CustomButton(
+                    variant = ButtonVariant.Outline,
+                    text = if (updateImageState is Resource.Loading) "Uploading..." else "Edit",
+                    onClick = {
+                        imagePickerLaunch.launch("image/*")
+                    },
                 )
             }
 
-            CustomButton(
-                variant = ButtonVariant.Outline,
-                text = "Edit",
-                onClick = {},
-            )
-        }
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text(
-                modifier = Modifier.padding(horizontal = 12.dp),
-                text = "Name",
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Box(
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(bounded = true)
-                    ) {
-                        editName = true
-                    }
-                    .padding(vertical = 4.dp, horizontal = 12.dp),
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "${state.firstName} ${state.lastName}",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MutedForegroundColor
-                    )
+                Text(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    text = "Name",
+                    fontWeight = FontWeight.SemiBold
+                )
 
-                    Icon(
-                        imageVector = Lucide.ChevronRight,
-                        contentDescription = "open",
-                    )
+                Box(
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true)
+                        ) {
+                            editName = true
+                        }
+                        .padding(vertical = 4.dp, horizontal = 12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "${state.firstName} ${state.lastName}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MutedForegroundColor
+                        )
+
+                        Icon(
+                            imageVector = Lucide.ChevronRight,
+                            contentDescription = "open",
+                        )
+                    }
                 }
             }
-        }
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text(
-                modifier = Modifier.padding(horizontal = 12.dp),
-                text = "About you",
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Box(
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(bounded = true)
-                    ) {
-                        editDescription = true
-                    }
-                    .padding(vertical = 4.dp, horizontal = 12.dp),
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = userInfoState.data?.data?.description ?: "Tell your story",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MutedForegroundColor
-                    )
+                Text(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    text = "About you",
+                    fontWeight = FontWeight.SemiBold
+                )
 
-                    Icon(
-                        imageVector = Lucide.ChevronRight,
-                        contentDescription = "open"
-                    )
+                Box(
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true)
+                        ) {
+                            editDescription = true
+                        }
+                        .padding(vertical = 4.dp, horizontal = 12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = userInfoState.data?.data?.description ?: "Tell your story",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MutedForegroundColor
+                        )
+
+                        Icon(
+                            imageVector = Lucide.ChevronRight,
+                            contentDescription = "open"
+                        )
+                    }
                 }
             }
-        }
 
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.elearn.presentation.viewmodel.material
 
+import android.net.Uri
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -12,8 +13,12 @@ class MaterialFormViewModel @Inject constructor() : ViewModel() {
     private val _state = mutableStateOf(MaterialFormState())
     val state: State<MaterialFormState> = _state
 
-    fun onClassNameChanged(query: String) {
-        _state.value = _state.value.copy(className = query)
+
+    fun onClassChanged(selectedClass: String?, classId: String?) {
+        _state.value = _state.value.copy(
+            selectedClass = selectedClass,
+            selectedClassId = classId
+        )
     }
 
     fun onMaterialNameChanged(query: String) {
@@ -24,7 +29,14 @@ class MaterialFormViewModel @Inject constructor() : ViewModel() {
         _state.value = _state.value.copy(description = query)
     }
 
-    fun onSelectedFileChanged(query: String) {
-        _state.value = _state.value.copy(selectedFileName = query)
+    fun onSelectedFileChanged(uri: Uri?, fileName: String) {
+        _state.value = _state.value.copy(
+            selectedFileUri = uri,
+            selectedFileName = fileName
+        )
+    }
+
+    fun resetState() {
+        _state.value = MaterialFormState()
     }
 }

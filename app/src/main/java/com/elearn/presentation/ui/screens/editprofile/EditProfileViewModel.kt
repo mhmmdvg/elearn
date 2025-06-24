@@ -1,11 +1,13 @@
 package com.elearn.presentation.ui.screens.editprofile
 
-import android.util.Log
+import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elearn.data.remote.repository.UserRepository
+import com.elearn.domain.model.UpdateImageResponse
 import com.elearn.domain.model.UserDescriptionReq
 import com.elearn.domain.model.UserDescriptionRes
 import com.elearn.domain.model.UserNameRequest
@@ -16,8 +18,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,12 +32,17 @@ class EditProfileViewModel @Inject constructor(
     private val _userInfoState = MutableStateFlow<Resource<UserResponse>>(Resource.Success(null))
     val userInfoState: StateFlow<Resource<UserResponse>> = _userInfoState
 
-    private val _updateUserName = MutableStateFlow<Resource<UserNameResponse>>(Resource.Success(null))
+    private val _updateUserName =
+        MutableStateFlow<Resource<UserNameResponse>>(Resource.Success(null))
     val updateUserName: StateFlow<Resource<UserNameResponse>> = _updateUserName
 
-    private val _updateDescription = MutableStateFlow<Resource<UserDescriptionRes>>(Resource.Success(null))
+    private val _updateDescription =
+        MutableStateFlow<Resource<UserDescriptionRes>>(Resource.Success(null))
     val updateDescription: StateFlow<Resource<UserDescriptionRes>> = _updateDescription
 
+    private val _updateProfileImageState =
+        MutableStateFlow<Resource<UpdateImageResponse>>(Resource.Success(null))
+    val updateProfileImageState: StateFlow<Resource<UpdateImageResponse>> = _updateProfileImageState
 
     fun onFirstNameChanged(query: String) {
         _state.value = _state.value.copy(firstName = query)
@@ -48,37 +55,6 @@ class EditProfileViewModel @Inject constructor(
     fun onDescriptionChanged(query: String) {
         _state.value = _state.value.copy(description = query)
     }
-
-//    fun getUserInfo(id: String) {
-//        userRepository.getCachedUserInfo(id)?.let {
-//            _userInfoState.value = Resource.Success(it)
-//            populateFormFields(it)
-//            return
-//        }
-//
-//        viewModelScope.launch {
-//
-//            if (_userInfoState.value.data == null) {
-//                _userInfoState.value = Resource.Loading()
-//            }
-//
-//            try {
-//                userRepository.fetchUserInfo(id).fold(onSuccess = { userResponse ->
-//                    _userInfoState.value = Resource.Success(userResponse)
-//                    populateFormFields(userResponse)
-//                }, onFailure = { exception ->
-//                    _userInfoState.value = Resource.Error(
-//                        message = exception.message ?: "Unknown Error",
-//                        data = _userInfoState.value.data
-//                    )
-//                })
-//            } catch (error: Exception) {
-//                _userInfoState.value = Resource.Error(
-//                    message = error.message ?: "Unknown Error", data = _userInfoState.value.data
-//                )
-//            }
-//        }
-//    }
 
     fun updateUserName(id: String) {
 
@@ -131,6 +107,33 @@ class EditProfileViewModel @Inject constructor(
                 )
             } catch (error: Exception) {
                 _updateDescription.value = Resource.Error(error.message ?: "Unknown Error")
+            }
+        }
+    }
+
+    fun updateProfileImage(context: Context, id: String, imageUri: Uri) {
+        viewModelScope.launch {
+            _updateProfileImageState.value = Resource.Loading()
+
+            try {
+                userRepository.updateProfileImage(context, id, imageUri).fold(
+                    onSuccess = { response ->
+                        userRepository.invalidateUserCache(id)
+                        _updateProfileImageState.value = Resource.Success(response)
+                        EditProfileEventBus.editProfileEventEmit(EditProfileEvent.UpdateProfileImage)
+                        delay(300)
+                        _updateProfileImageState.value = Resource.Success(null)
+                    },
+                    onFailure = { exception ->
+                        _updateProfileImageState.value = Resource.Error(
+                            exception.message ?: "Failed to update profile image"
+                        )
+                    }
+                )
+            } catch (error: Exception) {
+                _updateProfileImageState.value = Resource.Error(
+                    error.message ?: "Unknown error occurred"
+                )
             }
         }
     }

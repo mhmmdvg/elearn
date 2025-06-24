@@ -1,6 +1,10 @@
 package com.elearn.presentation.ui.components
 
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -8,14 +12,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -25,10 +32,13 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -40,15 +50,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.course.ClassListViewModel
 import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
+import com.elearn.presentation.viewmodel.material.MaterialViewModel
+import com.elearn.utils.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialForm(
-    viewModel: MaterialFormViewModel = hiltViewModel()
+    viewModel: MaterialFormViewModel = hiltViewModel(),
+    materialViewModel: MaterialViewModel = hiltViewModel(),
+    onSuccess: () -> Unit = {}
 ) {
     /* State Config */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val createdMaterial by materialViewModel.createMaterialState.collectAsState()
 
     /* Form */
     val formState = viewModel.state.value
@@ -58,7 +74,23 @@ fun MaterialForm(
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val context = LocalContext.current
+    val filePickerLaunch = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.onSelectedFileChanged(
+                uri = it,
+                fileName = it.lastPathSegment ?: "Unknown file"
+            )
+        }
+    }
 
+    LaunchedEffect(createdMaterial) {
+        if (createdMaterial is Resource.Success && createdMaterial.data != null) {
+            onSuccess()
+            viewModel.resetState()
+        }
+    }
 
     /* Bottom Sheet */
     if (selectClass) {
@@ -72,7 +104,15 @@ fun MaterialForm(
                     .fillMaxWidth()
                     .height(screenHeight * 0.6f)
             ) {
-                SelectClass()
+                SelectClass(
+                    onClassSelected = { id, name ->
+                        viewModel.onClassChanged(
+                            selectedClass = name,
+                            classId = id
+                        )
+                        selectClass = false
+                    }
+                )
             }
         }
     }
@@ -108,7 +148,7 @@ fun MaterialForm(
                     )
             ) {
                 Text(
-                    text = "Class", fontSize = 16.sp
+                    text = formState.selectedClass ?: "", fontSize = 16.sp
                 )
             }
         }
@@ -119,7 +159,7 @@ fun MaterialForm(
             Text("Material Name")
             OutlinedTextField(
                 value = formState.materialName,
-                onValueChange = { viewModel.onMaterialNameChanged(it) },
+                onValueChange = remember { { viewModel.onMaterialNameChanged(it) } },
                 placeholder = { Text("Enter material name") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
@@ -135,7 +175,7 @@ fun MaterialForm(
             Text("Description")
             OutlinedTextField(
                 value = formState.description,
-                onValueChange = { viewModel.onDescriptionChanged(it) },
+                onValueChange = remember { { viewModel.onDescriptionChanged(it) } },
                 placeholder = { Text("Enter description") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,9 +199,7 @@ fun MaterialForm(
 
             Button(
                 onClick = {
-                    Toast.makeText(context, "File picker not implemented", Toast.LENGTH_SHORT)
-                        .show()
-                    viewModel.onSelectedFileChanged("example_file.pdf")
+                    filePickerLaunch.launch("*/*")
                 }, colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryColor
                 )
@@ -174,16 +212,41 @@ fun MaterialForm(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
-            onClick = { /* TODO */ },
+            onClick = {
+                materialViewModel.createMaterial(
+                    context = context,
+                    fileUri = formState.selectedFileUri!!,
+                    name = formState.materialName,
+                    description = formState.description.ifBlank { null },
+                    classId = formState.selectedClassId ?: ""
+                )
+            },
+            isLoading = createdMaterial is Resource.Loading,
+            enabled = createdMaterial !is Resource.Loading,
             text = "Save"
         )
     }
 }
 
 @Composable
-fun SelectClass() {
+fun SelectClass(
+    classListViewModel: ClassListViewModel = hiltViewModel(),
+    onClassSelected: (String, String) -> Unit = { _, _ ->}
+) {
 
-    val classList = List(100) { index -> "News item ${index + 1}" }
+    val classes by classListViewModel.classes.collectAsState()
+
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredClasses = remember(searchQuery) {
+        if (searchQuery.isBlank()) {
+            classes.data?.data
+        } else {
+            classes.data?.data?.let {
+                it.filter { it.name.contains(searchQuery, ignoreCase = true) }
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -194,32 +257,77 @@ fun SelectClass() {
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
                 SearchInput(
-                    query = "",
+                    query = searchQuery,
                     placeholder = "Search Class",
-                    onQueryChanged = { /* TODO */ }
+                    onQueryChanged = { searchQuery = it }
                 )
             }
         }
 
-        items(classList.size) { index ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { /* TODO */ }
-                    )
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text(
-                    modifier = Modifier.padding(18.dp),
-                    text = "Class $index-A",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium
-                )
+        when (classes) {
+            is Resource.Success -> {
+                filteredClasses?.let {
+                    items(
+                        items = it,
+                        key = { it.id }
+                    ) { item ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { onClassSelected(item.id, item.name) }
+                                )
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(18.dp),
+                                text = item.name,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        HorizontalDivider(color = MutedColor, thickness = 1.dp)
+                    }
+                }
             }
-            HorizontalDivider(color = MutedColor, thickness = 1.dp)
+            is Resource.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            else -> {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = classes.message ?: "Unknown error occured",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Button(
+                                onClick = { classListViewModel.fetchClasses() }
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         item {
