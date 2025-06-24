@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 sealed interface EditProfileEvent {
     data object UpdateUserName : EditProfileEvent
     data object UpdateDescription : EditProfileEvent
+    data object UpdateProfileImage: EditProfileEvent
 }
 
 object EditProfileEventBus {

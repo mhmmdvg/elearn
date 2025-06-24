@@ -42,7 +42,7 @@ class ClassListViewModel @Inject constructor(
                 when (it) {
                     is HomeEvent.CreatedClass -> fetchClasses()
                     is HomeEvent.JoinedClass -> fetchClasses()
-                    is HomeEvent.NavigateDetail -> {}
+                    else -> {}
                 }
             }
         }

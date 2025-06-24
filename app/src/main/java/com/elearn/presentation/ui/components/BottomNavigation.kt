@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.SquarePlus
@@ -73,8 +74,10 @@ fun BottomNavigation(
     val joinState by courseViewModel.joinClass.collectAsState()
     var joinLoading by remember { mutableStateOf(false) }
 
-
     val userInfo: JSONObject? = decodeToken(courseViewModel.getToken().toString())
+
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -83,6 +86,15 @@ fun BottomNavigation(
         screenHeight < 800.dp -> 56.dp
         screenHeight < 1000.dp -> 64.dp
         else -> 72.dp
+    }
+
+    // Sync selectedNavigationIndex with current route
+    LaunchedEffect(currentRoute) {
+        when (currentRoute) {
+            Screen.Home.route -> selectedNavigationIndex.intValue = 0
+            Screen.Profile.route -> selectedNavigationIndex.intValue = 2
+            // Add case stays at current index since it's not a navigable route
+        }
     }
 
     LaunchedEffect(joinState) {
@@ -116,7 +128,11 @@ fun BottomNavigation(
             Column(
                 modifier = Modifier.height(screenHeight * 0.95f)
             ) {
-                MaterialForm()
+                MaterialForm(
+                    onSuccess = {
+                        addMaterial = false
+                    }
+                )
             }
         }
     }

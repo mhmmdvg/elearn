@@ -79,11 +79,8 @@ fun HomeScreen(
     /* Data */
     val classes by courseViewModel.classes.collectAsState()
     val materials by materialViewModel.materials.collectAsState()
-    val newsList = List(5) { index -> "News item ${index + 1}" }
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val userInfo: JSONObject? = decodeToken(viewModel.getToken().toString())
-
-    Log.d("materials", materials.data?.data?.materials.toString())
 
     if (addClass) {
         ModalBottomSheet(
@@ -149,7 +146,7 @@ fun HomeScreen(
                                         teacher = item.teacher,
                                         className = item.course.name,
                                         content = CardModel(
-                                            image = item.fileUrl ?: "",
+                                            image = item.fileUrl,
                                             body = item.description
                                         ),
                                         onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
@@ -195,14 +192,6 @@ fun HomeScreen(
                             }
                         }
                     }
-//                    items(newsList.size) { index ->
-//                        NewsCard(
-//                            teacherName = "Enji $index",
-//                            className = "IX B",
-//                            onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
-//                        )
-//
-//                    }
                 }
 
                 1 -> {

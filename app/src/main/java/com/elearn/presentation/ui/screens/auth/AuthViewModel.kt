@@ -54,7 +54,10 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             EditProfileEventBus.events.collectLatest {
                 when (it) {
-                    is EditProfileEvent.UpdateUserName, EditProfileEvent.UpdateDescription -> getCurrentUserDetails()
+                    is EditProfileEvent.UpdateUserName, EditProfileEvent.UpdateDescription, EditProfileEvent.UpdateProfileImage -> {
+                        cacheManager.invalidateAllCaches()
+                        getCurrentUserDetails()
+                    }
                 }
             }
         }
