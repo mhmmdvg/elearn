@@ -12,6 +12,8 @@ import com.elearn.domain.model.UserDescriptionRes
 import com.elearn.domain.model.UserNameRequest
 import com.elearn.domain.model.UserNameResponse
 import com.elearn.domain.model.UserResponse
+import com.elearn.utils.FileHandler.getMimeType
+import com.elearn.utils.FileHandler.uriToFile
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -98,7 +100,7 @@ class UserRepository @Inject constructor(
 
     suspend fun updateProfileImage(context: Context, id: String, imageUri: Uri): Result<UpdateImageResponse> {
         return try {
-            val file = uriToFile(context, imageUri)
+            val file = uriToFile(context, imageUri, "profile_image.jpg")
             val mimeType = getMimeType(context, imageUri)
             val requestFile = file.asRequestBody(mimeType.toMediaTypeOrNull())
 
@@ -146,53 +148,52 @@ class UserRepository @Inject constructor(
         return System.currentTimeMillis() - timestamp < cacheExpirationTime
     }
 
-    private fun getMimeType(context: Context, uri: Uri): String {
-        context.contentResolver.getType(uri)?.let { mimeType ->
-            if (mimeType != "*/*" && mimeType.isNotBlank()) {
-                return mimeType
-            }
-        }
-
-        // Fallback to extension-based detection
-        val fileName = getFileName(context, uri)
-        val extension = fileName.substringAfterLast('.', "").lowercase()
-
-        return when (extension) {
-            "jpg", "jpeg" -> "image/jpeg"
-            "png" -> "image/png"
-            "gif" -> "image/gif"
-            "webp" -> "image/webp"
-            else -> "image/jpeg" // Default fallback for images
-        }
-    }
-
-    private fun uriToFile(context: Context, uri: Uri): File {
-        val contentResolver = context.contentResolver
-        val fileName = getFileName(context, uri)
-        val tempFile = File(context.cacheDir, fileName)
-
-        contentResolver.openInputStream(uri)?.use { inputStream ->
-            FileOutputStream(tempFile).use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-        }
-
-        return tempFile
-    }
-
-    private fun getFileName(context: Context, uri: Uri): String {
-        var fileName = "profile_image.jpg"
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val displayNameIndex =
-                    it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                if (displayNameIndex != -1) {
-                    fileName = it.getString(displayNameIndex) ?: "profile_image.jpg"
-                }
-            }
-        }
-
-        return fileName
-    }
+//    private fun getMimeType(context: Context, uri: Uri): String {
+//        context.contentResolver.getType(uri)?.let { mimeType ->
+//            if (mimeType != "*/*" && mimeType.isNotBlank()) {
+//                return mimeType
+//            }
+//        }
+//
+//        val fileName = getFileName(context, uri)
+//        val extension = fileName.substringAfterLast('.', "").lowercase()
+//
+//        return when (extension) {
+//            "jpg", "jpeg" -> "image/jpeg"
+//            "png" -> "image/png"
+//            "gif" -> "image/gif"
+//            "webp" -> "image/webp"
+//            else -> "image/jpeg"
+//        }
+//    }
+//
+//    private fun uriToFile(context: Context, uri: Uri): File {
+//        val contentResolver = context.contentResolver
+//        val fileName = getFileName(context, uri)
+//        val tempFile = File(context.cacheDir, fileName)
+//
+//        contentResolver.openInputStream(uri)?.use { inputStream ->
+//            FileOutputStream(tempFile).use { outputStream ->
+//                inputStream.copyTo(outputStream)
+//            }
+//        }
+//
+//        return tempFile
+//    }
+//
+//    private fun getFileName(context: Context, uri: Uri): String {
+//        var fileName = "profile_image.jpg"
+//        val cursor = context.contentResolver.query(uri, null, null, null, null)
+//        cursor?.use {
+//            if (it.moveToFirst()) {
+//                val displayNameIndex =
+//                    it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+//                if (displayNameIndex != -1) {
+//                    fileName = it.getString(displayNameIndex) ?: "profile_image.jpg"
+//                }
+//            }
+//        }
+//
+//        return fileName
+//    }
 }

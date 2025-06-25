@@ -194,7 +194,8 @@ fun MaterialForm(
         ) {
             Text(
                 "Uploaded File: ${formState.selectedFileName}",
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = PrimaryForegroundColor
             )
 
             Button(
