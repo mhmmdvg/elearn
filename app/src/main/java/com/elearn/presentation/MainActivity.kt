@@ -153,17 +153,17 @@ fun NavGraph(startDestination: String) {
             ) { backstackEntry ->
                 val materialId = backstackEntry.arguments?.getString("materialId") ?: ""
                 MaterialDetailScreen(
-                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
-                    materialId = materialId, onBackClick = { navController.popBackStack() })
+                    materialId = materialId,
+                    navController = navController
+                )
             }
 
             composable(
                 route = Screen.CourseDetail.route,
                 arguments = listOf(navArgument("courseId") { type = NavType.StringType })
             ) { backstackEntry ->
-                val courseId = backstackEntry.arguments?.getString("courseDetail") ?: ""
+                val courseId = backstackEntry.arguments?.getString("courseId") ?: ""
                 CourseDetailScreen(
-                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     courseId = courseId, navController = navController
                 )
             }
@@ -178,10 +178,9 @@ fun NavGraph(startDestination: String) {
             composable(
                 route = Screen.EditProfile.route,
                 arguments = listOf(navArgument("userId") { type = NavType.StringType })
-                ) {
+            ) {
                 val userId = it.arguments?.getString("userId") ?: ""
                 EditProfileScreen(
-                    modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
                     navController = navController,
                     userId = userId
                 )

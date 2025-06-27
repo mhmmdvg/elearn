@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,6 +67,7 @@ fun MaterialForm(
     /* State Config */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val createdMaterial by materialViewModel.createMaterialState.collectAsState()
+    val scrollState = rememberScrollState()
 
     /* Form */
     val formState = viewModel.state.value
@@ -117,19 +120,14 @@ fun MaterialForm(
         }
     }
 
+
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-
+            .verticalScroll(scrollState)
     ) {
-        Text(
-            text = "New Material",
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 18.sp,
-        )
-
         Column(
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {

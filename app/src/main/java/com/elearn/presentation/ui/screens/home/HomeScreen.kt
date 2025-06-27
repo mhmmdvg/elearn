@@ -92,7 +92,7 @@ fun HomeScreen(
                 modifier = Modifier.height(screenHeight * 0.55f)
             ) {
                 Text(
-                    text = "Create New Class",
+                    text = "Class",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier

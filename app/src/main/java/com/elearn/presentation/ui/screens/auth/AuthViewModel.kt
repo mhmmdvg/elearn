@@ -13,7 +13,6 @@ import com.elearn.domain.model.LogoutResponse
 import com.elearn.domain.model.UserResponse
 import com.elearn.presentation.ui.screens.editprofile.EditProfileEvent
 import com.elearn.presentation.ui.screens.editprofile.EditProfileEventBus
-import com.elearn.presentation.ui.screens.editprofile.EditProfileScreen
 import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel

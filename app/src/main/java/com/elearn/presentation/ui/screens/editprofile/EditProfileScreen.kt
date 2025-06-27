@@ -1,6 +1,6 @@
 package com.elearn.presentation.ui.screens.editprofile
 
-import AppBar
+import ActionBar
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -68,6 +70,7 @@ fun EditProfileScreen(
     var editName by remember { mutableStateOf(false) }
     var editDescription by remember { mutableStateOf(false) }
     val updateImageState by viewModel.updateProfileImageState.collectAsState()
+    val scrollState = rememberScrollState()
 
     val imagePickerLaunch = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -130,16 +133,20 @@ fun EditProfileScreen(
         }
     }
 
-    Column {
-        AppBar(
-            title = "Profile",
-            onBackClick = {
-                navController.popBackStack()
-            }
-        )
+   Column(
+       verticalArrangement = Arrangement.spacedBy(12.dp)
+   ) {
+
+       ActionBar(
+           title = "Profile",
+           onBackClick = { navController.popBackStack() }
+       )
+
         Column(
             modifier = modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

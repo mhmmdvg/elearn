@@ -24,14 +24,14 @@ class MaterialRepository @Inject constructor(
     private var _materialListCache: CachedMaterialData? = null
     private val cacheExpirationTime = 10 * 60 * 1000L
 
-    suspend fun fetchMaterial(): Result<MaterialResponse> {
+    suspend fun fetchMaterial(courseId: String? = null): Result<MaterialResponse> {
         val cachedData = _materialListCache
         if (cachedData != null && isCacheValid(cachedData.timestamp)) {
             return Result.success(cachedData.data)
         }
 
         return try {
-            val res = materialApi.getMaterials()
+            val res = materialApi.getMaterials(courseId)
 
             if (res.isSuccessful) {
                 res.body()?.let {

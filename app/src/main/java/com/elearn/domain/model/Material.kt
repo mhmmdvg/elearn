@@ -30,7 +30,8 @@ data class MaterialData(
     val isActive: Boolean,
     @SerializedName("class")
     val course: ClassData,
-    val teacher: TeacherData
+    val teacher: TeacherData,
+    val createdAt: String
 )
 
 @Serializable
