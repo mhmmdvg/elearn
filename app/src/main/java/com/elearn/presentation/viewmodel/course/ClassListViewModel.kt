@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elearn.data.remote.local.TokenManager
 import com.elearn.data.remote.repository.CourseRepository
+import com.elearn.domain.model.CourseData
 import com.elearn.domain.model.CourseJoinResponse
 import com.elearn.domain.model.CourseResponse
 import com.elearn.domain.model.CreateCourseRequest
@@ -24,8 +25,8 @@ class ClassListViewModel @Inject constructor(
     private val courseRepository: CourseRepository,
     private val tokenManager: TokenManager,
 ) : ViewModel() {
-    private val _classes = MutableStateFlow<Resource<CourseResponse>>(Resource.Success(null))
-    val classes: StateFlow<Resource<CourseResponse>> = _classes
+    private val _classes = MutableStateFlow<Resource<CourseResponse<List<CourseData>>>>(Resource.Success(null))
+    val classes: StateFlow<Resource<CourseResponse<List<CourseData>>>> = _classes
 
     private val _createClass =
         MutableStateFlow<Resource<CreateCourseResponse>>(Resource.Success(null))
@@ -58,6 +59,28 @@ class ClassListViewModel @Inject constructor(
             return
         }
 
+        viewModelScope.launch {
+            _classes.value = Resource.Loading()
+
+            try {
+                courseRepository.fetchCourse().fold(
+                    onSuccess = {
+                        _classes.value = Resource.Success(it)
+                    },
+                    onFailure = {
+                        _classes.value = Resource.Error(
+                            message = it.message ?: "Unknown Error",
+                            data = _classes.value.data
+                        )
+                    }
+                )
+            } catch (error: Exception) {
+                _classes.value = Resource.Error(error.message ?: "Unknown Error")
+            }
+        }
+    }
+
+    fun refreshClasses() {
         viewModelScope.launch {
             _classes.value = Resource.Loading()
 

@@ -33,7 +33,6 @@ fun ActionBar(
             .fillMaxWidth()
             .background(PrimaryForegroundColor)
             .then(if (includeStatusBarPadding) Modifier.statusBarsPadding() else Modifier)
-            .height(46.dp)
             .padding(horizontal = 8.dp)
 
     ) {
@@ -46,7 +45,7 @@ fun ActionBar(
             }
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
         }

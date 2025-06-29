@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
@@ -40,7 +41,7 @@ fun CustomButton(
               modifier = modifier,
               onClick = onClick,
               colors = ButtonDefaults.buttonColors(
-                  containerColor = color ?: PrimaryColor
+                  containerColor = color ?: AccentColor
               ),
               enabled = enabled
           ) {
