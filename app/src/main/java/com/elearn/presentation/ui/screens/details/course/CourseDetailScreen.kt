@@ -70,11 +70,14 @@ import com.elearn.presentation.ui.screens.details.course.components.EmptyMateria
 import com.elearn.presentation.ui.screens.details.course.components.EnhancedMaterialCard
 import com.elearn.presentation.ui.screens.details.course.components.MaterialCardSkeleton
 import com.elearn.presentation.ui.screens.details.course.components.shimmerEffect
+import com.elearn.presentation.ui.screens.home.HomeEvent
+import com.elearn.presentation.ui.screens.home.HomeEventBus
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.utils.Resource
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 enum class EditType {
@@ -130,6 +133,14 @@ fun CourseDetailScreen(
 
             is Resource.Error -> {}
             else -> {}
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        HomeEventBus.events.collectLatest {
+            if (it is HomeEvent.CreatedMaterial) {
+                courseDetailViewModel.fetchMaterialByClass(courseId)
+            }
         }
     }
 

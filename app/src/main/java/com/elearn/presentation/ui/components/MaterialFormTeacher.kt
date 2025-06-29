@@ -1,7 +1,6 @@
 package com.elearn.presentation.ui.components
 
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
@@ -34,6 +33,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +41,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -67,16 +68,70 @@ fun MaterialForm(
     materialViewModel: MaterialViewModel = hiltViewModel(),
     isInClass: Boolean = false,
     classId: String? = null,
+    isEdit: Boolean = false,
+    materialId: String? = null,
     onSuccess: () -> Unit = {}
 ) {
     /* State Config */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val createdMaterial by materialViewModel.createMaterialState.collectAsState()
+    val editedMaterial by materialViewModel.editMaterialState.collectAsState()
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
     /* Form */
     val formState = viewModel.state.value
+
+    /* Validation */
+    var materialNameTouched by remember { mutableStateOf(false) }
+    var descriptionTouched by remember { mutableStateOf(false) }
+    var classTouched by remember { mutableStateOf(false) }
+    var fileTouched by remember { mutableStateOf(false) }
+
+    val materialNameError = remember(formState.materialName, materialNameTouched) {
+        if (materialNameTouched) viewModel.getMaterialNameError() else null
+    }
+
+    val descriptionError = remember(formState.description, descriptionTouched) {
+        if (descriptionTouched) viewModel.getDescriptionError() else null
+    }
+
+    val classError = remember(
+        formState.selectedClass,
+        formState.selectedClassId,
+        isInClass,
+        classId,
+        classTouched
+    ) {
+        if (!isInClass && classId?.isEmpty() ?: true && classTouched) {
+            viewModel.getClassError()
+        } else null
+    }
+
+    val fileError = remember(formState.selectedFileUri, formState.selectedFileName, fileTouched) {
+        if (fileTouched) viewModel.getFileError() else null
+    }
+
+    val isFormValid = remember(
+        formState.materialName,
+        formState.description,
+        formState.selectedClass,
+        formState.selectedClassId,
+        formState.selectedFileUri,
+        formState.selectedFileName
+    ) {
+        derivedStateOf {
+            viewModel.getMaterialNameError() == null &&
+                    viewModel.getDescriptionError() == null &&
+                    (if (!isInClass && (classId?.isEmpty() ?: true)) {
+                        viewModel.getClassError() == null
+                    } else {
+                        true
+                    }) &&
+                    viewModel.getFileError() == null
+        }
+    }
+
 
     /* Sheet */
     var selectClass by remember { mutableStateOf(false) }
@@ -101,6 +156,13 @@ fun MaterialForm(
                     onSuccess()
                     viewModel.resetState()
                 }
+
+                is HomeEvent.EditedMaterial -> {
+                    onSuccess()
+                    viewModel.resetState()
+                    materialViewModel.fetchMaterialDetail(materialId ?: "")
+                }
+
                 else -> {}
             }
         }
@@ -134,7 +196,6 @@ fun MaterialForm(
         }
     }
 
-
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
@@ -142,56 +203,107 @@ fun MaterialForm(
             .padding(16.dp)
             .verticalScroll(scrollState)
     ) {
+        // Class Selection (only show if not in class and no classId provided)
         if (!isInClass && classId?.isEmpty() ?: true) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Text("Class")
+                Text(
+                    text = "Class",
+                    fontWeight = FontWeight.SemiBold
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(
-                            width = 1.dp, color = MutedColor, shape = RoundedCornerShape(22)
+                            width = 1.dp,
+                            color = if (classError != null) Color.Red else MutedColor,
+                            shape = RoundedCornerShape(22)
                         )
                         .padding(16.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { selectClass = !selectClass }
+                            onClick = {
+                                classTouched = true
+                                selectClass = !selectClass
+                            }
                         )
                 ) {
                     Text(
-                        text = formState.selectedClass ?: "", fontSize = 16.sp
+                        text = formState.selectedClass ?: "Select a class",
+                        fontSize = 16.sp,
+                        color = if (formState.selectedClass == null) MutedColor else PrimaryColor
+                    )
+                }
+                // Error message for class
+                classError?.let { error ->
+                    Text(
+                        text = error,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
             }
         }
 
+        // Material Name Field
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("Material Name")
+            Text(
+                text = "Material Name",
+                fontWeight = FontWeight.SemiBold
+            )
             OutlinedTextField(
                 value = formState.materialName,
-                onValueChange = remember { { viewModel.onMaterialNameChanged(it) } },
+                onValueChange = remember {
+                    { value ->
+                        materialNameTouched = true
+                        viewModel.onMaterialNameChanged(value)
+                    }
+                },
                 placeholder = { Text("Enter material name") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
+                isError = materialNameError != null,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = PrimaryColor,
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = MutedColor
+                    focusedBorderColor = if (materialNameError != null) Color.Red else PrimaryColor,
+                    unfocusedBorderColor = if (materialNameError != null) Color.Red else MutedColor,
+                    unfocusedTextColor = PrimaryColor,
+                    errorBorderColor = Color.Red,
+                    errorTextColor = PrimaryColor
                 )
             )
+            // Error message for material name
+            materialNameError?.let { error ->
+                Text(
+                    text = error,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
         }
 
+        // Description Field
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("Description")
+            Text(
+                text = "Description",
+                fontWeight = FontWeight.SemiBold
+            )
             OutlinedTextField(
                 value = formState.description,
-                onValueChange = remember { { viewModel.onDescriptionChanged(it) } },
+                onValueChange = remember {
+                    { value ->
+                        descriptionTouched = true
+                        viewModel.onDescriptionChanged(value)
+                    }
+                },
                 placeholder = { Text("Enter description") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -199,29 +311,62 @@ fun MaterialForm(
                 maxLines = 5,
                 singleLine = false,
                 shape = RoundedCornerShape(16),
+                isError = descriptionError != null,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = PrimaryColor,
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = MutedColor
+                    focusedBorderColor = if (descriptionError != null) Color.Red else PrimaryColor,
+                    unfocusedBorderColor = if (descriptionError != null) Color.Red else MutedColor,
+                    unfocusedTextColor = PrimaryColor,
+                    errorBorderColor = Color.Red,
+                    errorTextColor = PrimaryColor
                 )
             )
+            // Error message for description
+            descriptionError?.let { error ->
+                Text(
+                    text = error,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
         }
 
+        // File Upload Field
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                "Uploaded File: ${formState.selectedFileName}",
-                style = MaterialTheme.typography.bodySmall,
-                color = PrimaryColor
+                text = "File Upload",
+                fontWeight = FontWeight.SemiBold
             )
+
+            if (formState.selectedFileName.isNotBlank()) {
+                Text(
+                    "Uploaded File: ${formState.selectedFileName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PrimaryColor,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
 
             CustomButton(
                 onClick = {
+                    fileTouched = true
                     filePickerLaunch.launch("*/*")
                 },
-                text = "Upload Material File"
+                text = if (formState.selectedFileName.isBlank()) "Upload Material File" else "Change File"
             )
+
+            // Error message for file
+            fileError?.let { error ->
+                Text(
+                    text = error,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
         }
 
         CustomButton(
@@ -229,6 +374,26 @@ fun MaterialForm(
                 .fillMaxWidth()
                 .height(48.dp),
             onClick = {
+                materialNameTouched = true
+                descriptionTouched = true
+                if (!isInClass && classId?.isEmpty() ?: true) {
+                    classTouched = true
+                }
+                fileTouched = true
+
+                if (!isFormValid.value) return@CustomButton
+
+                if (isEdit) {
+                    materialViewModel.putMaterial(
+                        materialId = materialId ?: "",
+                        context = context,
+                        fileUri = formState.selectedFileUri!!,
+                        name = formState.materialName,
+                        description = formState.description.ifBlank { null },
+                    )
+                    return@CustomButton
+                }
+
                 materialViewModel.createMaterial(
                     context = context,
                     fileUri = formState.selectedFileUri!!,
@@ -237,8 +402,8 @@ fun MaterialForm(
                     classId = formState.selectedClassId ?: classId ?: ""
                 )
             },
-            isLoading = createdMaterial is Resource.Loading,
-            enabled = createdMaterial !is Resource.Loading,
+            isLoading = createdMaterial is Resource.Loading || editedMaterial is Resource.Loading,
+            enabled = isFormValid.value && (createdMaterial !is Resource.Loading && editedMaterial !is Resource.Loading),
             text = "Save"
         )
     }
@@ -352,7 +517,6 @@ fun SelectClass(
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

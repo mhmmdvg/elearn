@@ -95,6 +95,44 @@ class MaterialRepository @Inject constructor(
         }
     }
 
+    suspend fun putMaterial(
+        materialId: String,
+        context: Context,
+        fileUri: Uri,
+        name: String,
+        description: String?,
+    ): Result<CreateMaterialResponse> {
+        return try {
+            val file = uriToFile(context, fileUri)
+            val mimeType = getMimeType(context, fileUri)
+
+            val fileRequestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
+            val filePart = MultipartBody.Part.createFormData("file", file.name, fileRequestBody)
+            val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
+            val descriptionPart = description?.toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val res = materialApi.putMaterial(
+                id = materialId,
+                file = filePart,
+                name = namePart,
+                description = descriptionPart,
+            )
+
+            if (res.isSuccessful) {
+                res.body()?.let {
+                    invalidateAllMaterialCaches()
+                    Result.success(it)
+                } ?: Result.failure(Exception("Empty Response Body"))
+            } else {
+                val errorBody = res.errorBody()?.string()
+                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+                Result.failure(Exception(errorResponse.error))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
     fun getCacheMaterialList(classId: String? = null): MaterialResponse? {
         return if (classId.isNullOrEmpty()) {
             val cachedData = _allMaterialsCache

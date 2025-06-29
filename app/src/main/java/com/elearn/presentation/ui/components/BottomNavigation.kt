@@ -43,6 +43,7 @@ import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
+import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
 import org.json.JSONObject
@@ -69,7 +70,8 @@ private val navigationItems = listOf(
 @Composable
 fun BottomNavigation(
     navController: NavController,
-    courseViewModel: ClassListViewModel = hiltViewModel()
+    courseViewModel: ClassListViewModel = hiltViewModel(),
+    materialFormViewModel: MaterialFormViewModel = hiltViewModel()
 ) {
     /* State */
     val selectedNavigationIndex = rememberSaveable { mutableIntStateOf(0) }
@@ -126,7 +128,10 @@ fun BottomNavigation(
 
     if (addMaterial) {
         ModalBottomSheet(
-            onDismissRequest = { addMaterial = false },
+            onDismissRequest = {
+                addMaterial = false
+                materialFormViewModel.resetState()
+            },
             sheetState = sheetState,
             containerColor = Color.White
         ) {

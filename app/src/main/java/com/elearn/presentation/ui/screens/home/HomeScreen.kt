@@ -446,9 +446,7 @@ fun ClassCardSkeleton() {
 // Extension function for shimmer effect
 @Composable
 fun Modifier.shimmerEffect(): Modifier {
-    return this // You can implement actual shimmer animation here if needed
-    // For a simple implementation, you can use the existing background
-    // For more advanced shimmer, you'd need to implement animation
+    return this
 }
 
 @Preview(showBackground = true)

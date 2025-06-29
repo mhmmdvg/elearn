@@ -1,7 +1,12 @@
 package com.elearn.presentation.ui.screens.details.material
 
 import ActionBar
-import android.util.Log
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,21 +26,31 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -46,7 +61,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.composables.icons.lucide.Download
-import com.composables.icons.lucide.File
 import com.composables.icons.lucide.FileText
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
@@ -54,26 +68,114 @@ import com.composables.icons.lucide.Pencil
 import com.composables.icons.lucide.Trash
 import com.elearn.domain.model.HTTPResponse
 import com.elearn.domain.model.MaterialData
+import com.elearn.domain.model.UserResponse
 import com.elearn.presentation.ui.components.CacheImage
+import com.elearn.presentation.ui.components.MaterialForm
+import com.elearn.presentation.ui.screens.auth.AuthViewModel
+import com.elearn.presentation.ui.screens.home.HomeEvent
+import com.elearn.presentation.ui.screens.home.HomeEventBus
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
+import com.elearn.presentation.viewmodel.material.MaterialViewModel
 import com.elearn.utils.Resource
 import com.elearn.utils.formatDate
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialDetailScreen(
     modifier: Modifier = Modifier,
     materialId: String,
     navController: NavController,
-    viewModel: MaterialDetailViewModel = hiltViewModel()
+    viewModel: MaterialViewModel = hiltViewModel(),
+    materialFormViewModel: MaterialFormViewModel = hiltViewModel(),
+    userViewModel: AuthViewModel = hiltViewModel()
 ) {
     /* State */
     val scrollState = rememberScrollState()
     val materialDetailState by viewModel.materialDetailState.collectAsState()
+    val scope = rememberCoroutineScope()
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val userInfoState by userViewModel.userInfoState.collectAsState()
+
+    /* Bottom Sheet State */
+    var showEditBottomSheet by remember { mutableStateOf(false) }
+    val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(materialId) {
         viewModel.fetchMaterialDetail(materialId)
+    }
+
+    // Listen for edit success events
+    LaunchedEffect(Unit) {
+        HomeEventBus.events.collectLatest { event ->
+            when (event) {
+                is HomeEvent.CreatedMaterial -> {
+                    // Refresh the material detail after successful edit
+                    viewModel.fetchMaterialDetail(materialId)
+                    showEditBottomSheet = false
+                }
+
+                else -> {}
+            }
+        }
+    }
+
+    LaunchedEffect(materialDetailState) {
+        if (materialDetailState is Resource.Success) {
+            materialDetailState.data?.data?.let { material ->
+                materialFormViewModel.onMaterialNameChanged(material.name)
+                materialFormViewModel.onDescriptionChanged(material.description ?: "")
+                materialFormViewModel.onSelectedFileChanged(
+                    uri = null,
+                    fileName = material.fileName ?: ""
+                )
+            }
+        }
+    }
+
+    /* Edit Bottom Sheet */
+    if (showEditBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showEditBottomSheet = false
+                // Reset form state when closing
+                materialFormViewModel.resetState()
+            },
+            sheetState = editSheetState,
+            containerColor = PrimaryForegroundColor
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(screenHeight * 0.8f)
+                    .padding(top = 16.dp)
+            ) {
+                Text(
+                    text = "Edit Material",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+
+                MaterialForm(
+                    viewModel = materialFormViewModel,
+                    isInClass = true,
+                    materialId = materialDetailState.data?.data?.id,
+                    isEdit = true,
+                    classId = materialDetailState.data?.data?.classId ?: "",
+                    onSuccess = {
+                        scope.launch {
+                            editSheetState.hide()
+                            showEditBottomSheet = false
+                        }
+                    }
+                )
+            }
+        }
     }
 
     Column(
@@ -96,9 +198,20 @@ fun MaterialDetailScreen(
                 is Resource.Loading -> {
                     MaterialDetailSkeleton()
                 }
+
                 is Resource.Success -> {
-                    MaterialDetailContent(materialDetailState = materialDetailState)
+                    MaterialDetailContent(
+                        materialDetailState = materialDetailState,
+                        userInfo = userInfoState.data,
+                        onEditClick = {
+                            showEditBottomSheet = true
+                        },
+                        onDeleteClick = {
+                            // TODO: Implement delete functionality
+                        }
+                    )
                 }
+
                 is Resource.Error -> {
                     // Error state - you can customize this
                     Box(
@@ -123,7 +236,10 @@ fun MaterialDetailScreen(
 
 @Composable
 private fun MaterialDetailContent(
-    materialDetailState: Resource<HTTPResponse<MaterialData>>
+    materialDetailState: Resource<HTTPResponse<MaterialData>>,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    userInfo: UserResponse? = null
 ) {
     val isImage = materialDetailState.data?.data?.fileType == "IMAGE"
 
@@ -165,7 +281,8 @@ private fun MaterialDetailContent(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(CircleShape),
-                            imageUrl = materialDetailState.data?.data?.teacher?.imageUrl ?: "https://github.com/shadcn.png",
+                            imageUrl = materialDetailState.data?.data?.teacher?.imageUrl
+                                ?: "https://github.com/shadcn.png",
                             description = "Teacher Avatar",
                         )
                     }
@@ -299,75 +416,80 @@ private fun MaterialDetailContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Action buttons
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(bottomStart = 18.dp))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true),
-                            onClick = { /* TODO: Handle edit */ }
-                        )
-                        .padding(16.dp)
-                ) {
+            when (userInfo?.data?.role?.name) {
+                "teacher" -> {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(
-                            6.dp,
-                            alignment = Alignment.CenterHorizontally
-                        ),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            modifier = Modifier.size(16.dp),
-                            imageVector = Lucide.Pencil,
-                            contentDescription = "edit"
-                        )
-                        Text(
-                            text = "Edit",
-                            color = Color.Black,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(bottomStart = 18.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(bounded = true),
+                                    onClick = onEditClick
+                                )
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    6.dp,
+                                    alignment = Alignment.CenterHorizontally
+                                ),
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(16.dp),
+                                    imageVector = Lucide.Pencil,
+                                    contentDescription = "edit"
+                                )
+                                Text(
+                                    text = "Edit",
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(bottomEnd = 18.dp))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true),
-                            onClick = { /* TODO: Handle delete */ }
-                        )
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(
-                            6.dp,
-                            alignment = Alignment.CenterHorizontally
-                        ),
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(16.dp),
-                            imageVector = Lucide.Trash,
-                            contentDescription = "delete",
-                            tint = Color.Red
-                        )
-                        Text(
-                            text = "Delete",
-                            color = Color.Red,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center
-                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(bottomEnd = 18.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(bounded = true),
+                                    onClick = onDeleteClick
+                                )
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    6.dp,
+                                    alignment = Alignment.CenterHorizontally
+                                ),
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(16.dp),
+                                    imageVector = Lucide.Trash,
+                                    contentDescription = "delete",
+                                    tint = Color.Red
+                                )
+                                Text(
+                                    text = "Delete",
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
                     }
                 }
+                else -> {}
             }
         }
     }
@@ -612,10 +734,32 @@ private fun MaterialDetailSkeleton() {
     }
 }
 
-// Extension function for shimmer effect
 @Composable
-fun Modifier.shimmerEffect(): Modifier {
-    return this // You can implement actual shimmer animation here if needed
+fun Modifier.shimmerEffect(): Modifier = composed {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alpha = transition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1000,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmer_alpha"
+    )
+    background(
+        brush = Brush.linearGradient(
+            colors = listOf(
+                Color.Gray.copy(alpha = alpha.value),
+                Color.LightGray.copy(alpha = alpha.value),
+                Color.Gray.copy(alpha = alpha.value)
+            ),
+            start = Offset.Zero,
+            end = Offset(x = 1000f, y = 100f)
+        )
+    )
 }
 
 @Composable
