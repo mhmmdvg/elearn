@@ -1,17 +1,28 @@
 package com.elearn.presentation.ui.screens.home
 
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -19,8 +30,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +64,7 @@ import com.elearn.presentation.ui.screens.home.components.ChipTabs
 import com.elearn.presentation.ui.screens.home.components.ClassCard
 import com.elearn.presentation.ui.screens.home.components.ClassForm
 import com.elearn.presentation.ui.screens.home.components.NewsCard
+import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
@@ -75,12 +91,20 @@ fun HomeScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val state = viewModel.state.value
     var addClass by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     /* Data */
     val classes by courseViewModel.classes.collectAsState()
     val materials by materialViewModel.materials.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val userInfo: JSONObject? = decodeToken(viewModel.getToken().toString())
+
+    // Handle refresh completion
+    LaunchedEffect(classes, materials) {
+        if (classes !is Resource.Loading && materials !is Resource.Loading) {
+            isRefreshing = false
+        }
+    }
 
     if (addClass) {
         ModalBottomSheet(
@@ -108,146 +132,142 @@ fun HomeScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = modifier
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            /* Header */
-            item {
-                Column(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    ChipTabs(
-                        tabs = tabs,
-                        selectedTabIndex = state.selectedTabIndex,
-                        onTabSelected = { viewModel.onTabSelected(it) },
-                    )
-                    SearchInput(
-                        query = state.searchQuery,
-                        onQueryChanged = { viewModel.onQueryChanged(it) }
-                    )
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                if (state.selectedTabIndex == 0) {
+                    materialViewModel.refreshMaterials()
+                } else {
+                    courseViewModel.refreshClasses()
                 }
             }
+        ) {
+            LazyColumn(
+                modifier = modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                /* Header */
+                item {
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        ChipTabs(
+                            tabs = tabs,
+                            selectedTabIndex = state.selectedTabIndex,
+                            onTabSelected = { viewModel.onTabSelected(it) },
+                        )
+                        SearchInput(
+                            query = state.searchQuery,
+                            onQueryChanged = { viewModel.onQueryChanged(it) }
+                        )
+                    }
+                }
 
-
-            /* Card */
-            when (state.selectedTabIndex) {
-                0 -> {
-                    when (materials) {
-                        is Resource.Success -> {
-                            materials.data?.data?.materials?.let {
-                                items(
-                                    items = it,
-                                    key = { it.id }
-                                ) { item ->
-                                    NewsCard(
-                                        teacher = item.teacher,
-                                        className = item.course.name,
-                                        content = CardModel(
-                                            image = item.fileUrl,
-                                            body = item.description
-                                        ),
-                                        onClick = { navController.navigate(Screen.MaterialDetail.createRoute("enji1")) }
-                                    )
-                                }
-                            }
-                        }
-
-                        is Resource.Loading -> {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        }
-
-                        else -> {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Text(
-                                            text = materials.message ?: "Unknown error occured",
-                                            color = MaterialTheme.colorScheme.error
+                /* Card */
+                when (state.selectedTabIndex) {
+                    0 -> {
+                        when (materials) {
+                            is Resource.Success -> {
+                                materials.data?.data?.materials?.let {
+                                    items(
+                                        items = it,
+                                        key = { it.id }
+                                    ) { item ->
+                                        NewsCard(
+                                            material = item,
+                                            className = item.course.name,
+                                            onClick = { navController.navigate(Screen.MaterialDetail.createRoute(item.id)) }
                                         )
-                                        Button(
-                                            onClick = { materialViewModel.fetchMaterials() }
+                                    }
+                                }
+                            }
+
+                            is Resource.Loading -> {
+                                items(5) { // Show 5 skeleton items
+                                    NewsCardSkeleton()
+                                }
+                            }
+
+                            else -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text("Retry")
+                                            Text(
+                                                text = materials.message ?: "Unknown error occured",
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                            Button(
+                                                onClick = { materialViewModel.fetchMaterials() }
+                                            ) {
+                                                Text("Retry")
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                1 -> {
-                    when (classes) {
-                        is Resource.Success -> {
-                            classes.data?.data?.let {
-                                items(
-                                    items = it,
-                                    key = { it.id }
-                                ) { item ->
-                                    ClassCard(
-                                        className = item.name,
-                                        onClick = {
-                                            navController.navigate(
-                                                Screen.CourseDetail.createRoute(
-                                                    item.id
+                    1 -> {
+                        when (classes) {
+                            is Resource.Success -> {
+                                classes.data?.data?.let {
+                                    items(
+                                        items = it,
+                                        key = { it.id }
+                                    ) { item ->
+                                        ClassCard(
+                                            className = item.name,
+                                            onClick = {
+                                                navController.navigate(
+                                                    Screen.CourseDetail.createRoute(
+                                                        item.id
+                                                    )
                                                 )
-                                            )
-                                        },
-                                        onMore = { /* TODO */ }
-                                    )
-                                }
-                            }
-                        }
-
-                        is Resource.Loading -> {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        }
-
-                        else -> {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Text(
-                                            text = classes.message ?: "Unknown error occured",
-                                            color = MaterialTheme.colorScheme.error
+                                            },
+                                            onMore = { /* TODO */ },
                                         )
-                                        Button(
-                                            onClick = { courseViewModel.fetchClasses() }
+                                    }
+                                }
+                            }
+
+                            is Resource.Loading -> {
+                                items(5) { // Show 5 skeleton items
+                                    ClassCardSkeleton()
+                                }
+                            }
+
+                            else -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text("Retry")
+                                            Text(
+                                                text = classes.message ?: "Unknown error occured",
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                            Button(
+                                                onClick = { courseViewModel.fetchClasses() }
+                                            ) {
+                                                Text("Retry")
+                                            }
                                         }
                                     }
                                 }
@@ -277,10 +297,175 @@ fun HomeScreen(
     }
 }
 
+@Composable
+fun NewsCardSkeleton() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = PrimaryForegroundColor,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.dp,
+                shape = RoundedCornerShape(16.dp),
+                color = MutedColor
+            )
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Header skeleton
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Gray.copy(alpha = 0.3f))
+                        .shimmerEffect()
+                )
+                Box(
+                    modifier = Modifier
+                        .width(60.dp)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Gray.copy(alpha = 0.3f))
+                        .shimmerEffect()
+                )
+            }
+
+            // Title skeleton
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .height(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.Gray.copy(alpha = 0.3f))
+                    .shimmerEffect()
+            )
+
+            // Description skeleton
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Gray.copy(alpha = 0.3f))
+                        .shimmerEffect()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Gray.copy(alpha = 0.3f))
+                        .shimmerEffect()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ClassCardSkeleton() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = PrimaryForegroundColor,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.dp,
+                shape = RoundedCornerShape(16.dp),
+                color = MutedColor
+            )
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Icon skeleton
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray.copy(alpha = 0.3f))
+                        .shimmerEffect()
+                )
+
+                // Text skeleton
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(18.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.Gray.copy(alpha = 0.3f))
+                            .shimmerEffect()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.Gray.copy(alpha = 0.3f))
+                            .shimmerEffect()
+                    )
+                }
+            }
+
+            // More button skeleton
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray.copy(alpha = 0.3f))
+                    .shimmerEffect()
+            )
+        }
+    }
+}
+
+// Extension function for shimmer effect
+@Composable
+fun Modifier.shimmerEffect(): Modifier {
+    return this // You can implement actual shimmer animation here if needed
+    // For a simple implementation, you can use the existing background
+    // For more advanced shimmer, you'd need to implement animation
+}
+
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
     val navController = rememberNavController()
-
     HomeScreen(navController = navController)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun NewsCardSkeletonPreview() {
+    NewsCardSkeleton()
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ClassCardSkeletonPreview() {
+    ClassCardSkeleton()
 }

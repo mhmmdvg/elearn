@@ -18,8 +18,6 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
-import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -80,7 +78,10 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun putUserDescription(id: String, req: UserDescriptionReq): Result<UserDescriptionRes> {
+    suspend fun putUserDescription(
+        id: String,
+        req: UserDescriptionReq
+    ): Result<UserDescriptionRes> {
         return try {
             val res = userApi.updateDescription(id, req)
 
@@ -98,7 +99,11 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun updateProfileImage(context: Context, id: String, imageUri: Uri): Result<UpdateImageResponse> {
+    suspend fun updateProfileImage(
+        context: Context,
+        id: String,
+        imageUri: Uri
+    ): Result<UpdateImageResponse> {
         return try {
             val file = uriToFile(context, imageUri, "profile_image.jpg")
             val mimeType = getMimeType(context, imageUri)
@@ -147,53 +152,4 @@ class UserRepository @Inject constructor(
     private fun isCacheValid(timestamp: Long): Boolean {
         return System.currentTimeMillis() - timestamp < cacheExpirationTime
     }
-
-//    private fun getMimeType(context: Context, uri: Uri): String {
-//        context.contentResolver.getType(uri)?.let { mimeType ->
-//            if (mimeType != "*/*" && mimeType.isNotBlank()) {
-//                return mimeType
-//            }
-//        }
-//
-//        val fileName = getFileName(context, uri)
-//        val extension = fileName.substringAfterLast('.', "").lowercase()
-//
-//        return when (extension) {
-//            "jpg", "jpeg" -> "image/jpeg"
-//            "png" -> "image/png"
-//            "gif" -> "image/gif"
-//            "webp" -> "image/webp"
-//            else -> "image/jpeg"
-//        }
-//    }
-//
-//    private fun uriToFile(context: Context, uri: Uri): File {
-//        val contentResolver = context.contentResolver
-//        val fileName = getFileName(context, uri)
-//        val tempFile = File(context.cacheDir, fileName)
-//
-//        contentResolver.openInputStream(uri)?.use { inputStream ->
-//            FileOutputStream(tempFile).use { outputStream ->
-//                inputStream.copyTo(outputStream)
-//            }
-//        }
-//
-//        return tempFile
-//    }
-//
-//    private fun getFileName(context: Context, uri: Uri): String {
-//        var fileName = "profile_image.jpg"
-//        val cursor = context.contentResolver.query(uri, null, null, null, null)
-//        cursor?.use {
-//            if (it.moveToFirst()) {
-//                val displayNameIndex =
-//                    it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-//                if (displayNameIndex != -1) {
-//                    fileName = it.getString(displayNameIndex) ?: "profile_image.jpg"
-//                }
-//            }
-//        }
-//
-//        return fileName
-//    }
 }

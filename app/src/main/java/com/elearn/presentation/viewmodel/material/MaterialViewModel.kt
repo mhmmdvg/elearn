@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,10 +26,10 @@ class MaterialViewModel @Inject constructor(
     private val materialRepository: MaterialRepository,
 ) : ViewModel() {
     private val _materials = MutableStateFlow<Resource<MaterialResponse>>(Resource.Success(null))
-    val materials: StateFlow<Resource<MaterialResponse>> = _materials
+    val materials: StateFlow<Resource<MaterialResponse>> = _materials.asStateFlow()
 
     private val _createMaterialState = MutableStateFlow<Resource<CreateMaterialResponse>>(Resource.Success(null))
-    val createMaterialState: StateFlow<Resource<CreateMaterialResponse>> = _createMaterialState
+    val createMaterialState: StateFlow<Resource<CreateMaterialResponse>> = _createMaterialState.asStateFlow()
 
 
     init {
@@ -57,7 +58,29 @@ class MaterialViewModel @Inject constructor(
                 materialRepository.fetchMaterial().fold(
                     onSuccess = {
                         _materials.value = Resource.Success(it)
-                        Log.d("checkit", it.toString())
+                    },
+                    onFailure = {
+                        _materials.value = Resource.Error(
+                            message = it.message ?: "Unknown Error",
+                            data = _materials.value.data
+                        )
+                    }
+                )
+            } catch (error: Exception) {
+                _materials.value = Resource.Error(error.message ?: "Unknown Error")
+            }
+        }
+    }
+
+    fun refreshMaterials() {
+
+        viewModelScope.launch {
+            _materials.value = Resource.Loading()
+
+            try {
+                materialRepository.fetchMaterial().fold(
+                    onSuccess = {
+                        _materials.value = Resource.Success(it)
                     },
                     onFailure = {
                         _materials.value = Resource.Error(

@@ -2,7 +2,6 @@ package com.elearn.presentation.ui.components
 
 import android.net.Uri
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
@@ -23,7 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -39,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +48,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.elearn.presentation.ui.screens.home.HomeEvent
+import com.elearn.presentation.ui.screens.home.HomeEventBus
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
@@ -56,18 +57,23 @@ import com.elearn.presentation.viewmodel.course.ClassListViewModel
 import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 import com.elearn.presentation.viewmodel.material.MaterialViewModel
 import com.elearn.utils.Resource
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialForm(
     viewModel: MaterialFormViewModel = hiltViewModel(),
     materialViewModel: MaterialViewModel = hiltViewModel(),
+    isInClass: Boolean = false,
+    classId: String? = null,
     onSuccess: () -> Unit = {}
 ) {
     /* State Config */
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val createdMaterial by materialViewModel.createMaterialState.collectAsState()
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     /* Form */
     val formState = viewModel.state.value
@@ -88,10 +94,15 @@ fun MaterialForm(
         }
     }
 
-    LaunchedEffect(createdMaterial) {
-        if (createdMaterial is Resource.Success && createdMaterial.data != null) {
-            onSuccess()
-            viewModel.resetState()
+    LaunchedEffect(Unit) {
+        HomeEventBus.events.collectLatest {
+            when (it) {
+                is HomeEvent.CreatedMaterial -> {
+                    onSuccess()
+                    viewModel.resetState()
+                }
+                else -> {}
+            }
         }
     }
 
@@ -109,11 +120,14 @@ fun MaterialForm(
             ) {
                 SelectClass(
                     onClassSelected = { id, name ->
-                        viewModel.onClassChanged(
-                            selectedClass = name,
-                            classId = id
-                        )
-                        selectClass = false
+                        scope.launch {
+                            viewModel.onClassChanged(
+                                selectedClass = name,
+                                classId = id
+                            )
+                            sheetState.hide()
+                            selectClass = false
+                        }
                     }
                 )
             }
@@ -128,26 +142,28 @@ fun MaterialForm(
             .padding(16.dp)
             .verticalScroll(scrollState)
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Text("Class")
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp, color = MutedColor, shape = RoundedCornerShape(22)
-                    )
-                    .padding(16.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { selectClass = !selectClass }
-                    )
+        if (!isInClass && classId?.isEmpty() ?: true) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Text(
-                    text = formState.selectedClass ?: "", fontSize = 16.sp
-                )
+                Text("Class")
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp, color = MutedColor, shape = RoundedCornerShape(22)
+                        )
+                        .padding(16.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { selectClass = !selectClass }
+                        )
+                ) {
+                    Text(
+                        text = formState.selectedClass ?: "", fontSize = 16.sp
+                    )
+                }
             }
         }
 
@@ -162,7 +178,9 @@ fun MaterialForm(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
+                    focusedTextColor = PrimaryColor,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = MutedColor
                 )
             )
         }
@@ -182,7 +200,9 @@ fun MaterialForm(
                 singleLine = false,
                 shape = RoundedCornerShape(16),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor, unfocusedBorderColor = MutedColor
+                    focusedTextColor = PrimaryColor,
+                    focusedBorderColor = PrimaryColor,
+                    unfocusedBorderColor = MutedColor
                 )
             )
         }
@@ -193,18 +213,15 @@ fun MaterialForm(
             Text(
                 "Uploaded File: ${formState.selectedFileName}",
                 style = MaterialTheme.typography.bodySmall,
-                color = PrimaryForegroundColor
+                color = PrimaryColor
             )
 
-            Button(
+            CustomButton(
                 onClick = {
                     filePickerLaunch.launch("*/*")
-                }, colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryColor
-                )
-            ) {
-                Text("Upload Material File")
-            }
+                },
+                text = "Upload Material File"
+            )
         }
 
         CustomButton(
@@ -217,7 +234,7 @@ fun MaterialForm(
                     fileUri = formState.selectedFileUri!!,
                     name = formState.materialName,
                     description = formState.description.ifBlank { null },
-                    classId = formState.selectedClassId ?: ""
+                    classId = formState.selectedClassId ?: classId ?: ""
                 )
             },
             isLoading = createdMaterial is Resource.Loading,
@@ -230,7 +247,7 @@ fun MaterialForm(
 @Composable
 fun SelectClass(
     classListViewModel: ClassListViewModel = hiltViewModel(),
-    onClassSelected: (String, String) -> Unit = { _, _ ->}
+    onClassSelected: (String, String) -> Unit = { _, _ -> }
 ) {
 
     val classes by classListViewModel.classes.collectAsState()
@@ -291,6 +308,7 @@ fun SelectClass(
                     }
                 }
             }
+
             is Resource.Loading -> {
                 item {
                     Box(

@@ -1,6 +1,8 @@
 package com.elearn.data.remote.api
 
 import com.elearn.domain.model.CreateMaterialResponse
+import com.elearn.domain.model.HTTPResponse
+import com.elearn.domain.model.MaterialData
 import com.elearn.domain.model.MaterialResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -9,11 +11,15 @@ import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface MaterialApi {
     @GET("materials")
     suspend fun getMaterials(@Query("classId") classId: String? = null): Response<MaterialResponse>
+
+    @GET("materials/{id}")
+    suspend fun getMaterialDetail(@Path("id") id: String): Response<HTTPResponse<MaterialData>>
 
     @Multipart
     @POST("materials")
