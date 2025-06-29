@@ -19,7 +19,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,9 +27,6 @@ class EditProfileViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = mutableStateOf(EditProfileState())
     val state: State<EditProfileState> = _state
-
-    private val _userInfoState = MutableStateFlow<Resource<UserResponse>>(Resource.Success(null))
-    val userInfoState: StateFlow<Resource<UserResponse>> = _userInfoState
 
     private val _updateUserName =
         MutableStateFlow<Resource<UserNameResponse>>(Resource.Success(null))

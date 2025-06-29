@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -26,7 +28,13 @@ import java.io.FileOutputStream
 import java.net.URL
 import java.security.MessageDigest
 
-private val inMemoryCache = mutableMapOf<String, Bitmap>()
+private class LRUCache<K, V>(private val maxSize: Int) : LinkedHashMap<K, V>(0, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean {
+        return size > maxSize
+    }
+}
+
+private val inMemoryCache = LRUCache<String, Bitmap>(50) // Limit to 50 images
 
 @Composable
 fun CacheImage(
@@ -34,46 +42,56 @@ fun CacheImage(
     imageUrl: String,
     description: String?,
     contentScale: ContentScale = ContentScale.Crop,
+    maxWidth: Dp? = null,
+    maxHeight: Dp? = null
 ) {
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var hasError by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val density = LocalDensity.current
 
     LaunchedEffect(imageUrl) {
-        isLoading = true
-        val cachedBitmap = inMemoryCache[imageUrl]
-
-        if (bitmap != null) {
-            bitmap = cachedBitmap
+        if (imageUrl.isBlank()) {
             isLoading = false
+            hasError = true
             return@LaunchedEffect
         }
 
-        val cacheFile = getCacheFile(context, imageUrl)
+        isLoading = true
+        hasError = false
 
-        if (cacheFile.exists()) {
-            bitmap = try {
-                BitmapFactory.decodeFile(cacheFile.absolutePath)?.also {
-                    inMemoryCache[imageUrl] = it
-                }
-            } catch (error: Exception) {
-                null
-            }
-
-            if (bitmap != null) {
+        try {
+            // Check in-memory cache first
+            val cachedBitmap = inMemoryCache[imageUrl]
+            if (cachedBitmap != null && !cachedBitmap.isRecycled) {
+                bitmap = cachedBitmap
                 isLoading = false
-
                 return@LaunchedEffect
             }
+
+            // Calculate target dimensions for scaling
+            val targetWidth = maxWidth?.let { with(density) { it.toPx().toInt() } }
+            val targetHeight = maxHeight?.let { with(density) { it.toPx().toInt() } }
+
+            // Load from cache or network on IO thread
+            val loadedBitmap = withContext(Dispatchers.IO) {
+                loadImageWithCache(context, imageUrl, targetWidth, targetHeight)
+            }
+
+            if (loadedBitmap != null) {
+                // Cache in memory
+                inMemoryCache[imageUrl] = loadedBitmap
+                bitmap = loadedBitmap
+            } else {
+                hasError = true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            hasError = true
+        } finally {
+            isLoading = false
         }
-
-        bitmap = loadImageFromUrl(imageUrl)?.also { downloadBitmap ->
-            inMemoryCache[imageUrl] = downloadBitmap
-
-            saveToDiskCache(context, imageUrl, downloadBitmap)
-        }
-
-        isLoading = false
     }
 
     when {
@@ -91,61 +109,166 @@ fun CacheImage(
             modifier = modifier
         )
 
-        else -> Box(
+        hasError -> Box(
             modifier = modifier
-                .background(Color.Gray)
-        )
+                .background(Color.Gray),
+            contentAlignment = Alignment.Center
+        ) {
+            // You can add an error icon here
+        }
     }
 }
 
-suspend fun loadImageFromUrl(url: String): Bitmap? {
+private suspend fun loadImageWithCache(
+    context: Context,
+    url: String,
+    targetWidth: Int? = null,
+    targetHeight: Int? = null
+): Bitmap? {
     return withContext(Dispatchers.IO) {
         try {
-            val connection = URL(url).openConnection()
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
-            connection.connect()
+            val cacheFile = getCacheFile(context, url)
 
-            val inputStream = connection.getInputStream()
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream.close()
+            // Try loading from disk cache first
+            if (cacheFile.exists()) {
+                val diskBitmap =
+                    decodeBitmapFromFile(cacheFile.absolutePath, targetWidth, targetHeight)
+                if (diskBitmap != null) {
+                    return@withContext diskBitmap
+                }
+            }
 
-            bitmap
-        } catch (error: Exception) {
-            error.printStackTrace()
+            // Load from network
+            val networkBitmap = loadImageFromUrl(url, targetWidth, targetHeight)
+            if (networkBitmap != null) {
+                // Save to disk cache
+                saveToDiskCache(cacheFile, networkBitmap)
+            }
 
+            networkBitmap
+        } catch (e: Exception) {
+            e.printStackTrace()
             null
         }
     }
 }
 
+private fun decodeBitmapFromFile(
+    filePath: String,
+    targetWidth: Int? = null,
+    targetHeight: Int? = null
+): Bitmap? {
+    return try {
+        if (targetWidth != null && targetHeight != null) {
+            // First decode bounds only
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(filePath, options)
+
+            // Calculate sample size
+            options.inSampleSize = calculateInSampleSize(options, targetWidth, targetHeight)
+            options.inJustDecodeBounds = false
+
+            BitmapFactory.decodeFile(filePath, options)
+        } else {
+            BitmapFactory.decodeFile(filePath)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+private suspend fun loadImageFromUrl(
+    url: String,
+    targetWidth: Int? = null,
+    targetHeight: Int? = null
+): Bitmap? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val connection = URL(url).openConnection().apply {
+                connectTimeout = 10000
+                readTimeout = 10000
+                setRequestProperty("User-Agent", "Android App")
+            }
+
+            connection.connect()
+
+            connection.getInputStream().use { inputStream ->
+                if (targetWidth != null && targetHeight != null) {
+                    // Decode with scaling
+                    val options = BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+
+                    // Read bounds
+                    val boundStream = connection.getInputStream()
+                    BitmapFactory.decodeStream(boundStream, null, options)
+                    boundStream.close()
+
+                    // Calculate sample size and decode
+                    options.inSampleSize = calculateInSampleSize(options, targetWidth, targetHeight)
+                    options.inJustDecodeBounds = false
+
+                    val finalStream = URL(url).openConnection().apply {
+                        connectTimeout = 10000
+                        readTimeout = 10000
+                    }.getInputStream()
+
+                    BitmapFactory.decodeStream(finalStream, null, options)
+                } else {
+                    BitmapFactory.decodeStream(inputStream)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+}
+
+private fun calculateInSampleSize(
+    options: BitmapFactory.Options,
+    reqWidth: Int,
+    reqHeight: Int
+): Int {
+    val (height: Int, width: Int) = options.run { outHeight to outWidth }
+    var inSampleSize = 1
+
+    if (height > reqHeight || width > reqWidth) {
+        val halfHeight: Int = height / 2
+        val halfWidth: Int = width / 2
+
+        while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+            inSampleSize *= 2
+        }
+    }
+
+    return inSampleSize
+}
+
 private fun getCacheFileName(url: String): String {
     val md = MessageDigest.getInstance("SHA-256")
     val digest = md.digest(url.toByteArray())
-
     return digest.fold("") { str, it -> str + "%02x".format(it) }
 }
 
 private fun getCacheFile(context: Context, url: String): File {
     val cacheDir = File(context.cacheDir, "image_cache")
-
     if (!cacheDir.exists()) {
         cacheDir.mkdirs()
     }
-
     return File(cacheDir, getCacheFileName(url))
 }
 
-private fun saveToDiskCache(context: Context, url: String, bitmap: Bitmap) {
+private fun saveToDiskCache(cacheFile: File, bitmap: Bitmap) {
     try {
-        val cacheFile = getCacheFile(context, url)
-
         FileOutputStream(cacheFile).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out) // Use JPEG with compression
             out.flush()
         }
-    } catch (error: Exception) {
-        error.printStackTrace()
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }

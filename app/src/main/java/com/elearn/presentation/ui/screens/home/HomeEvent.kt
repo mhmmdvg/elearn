@@ -7,7 +7,7 @@ sealed interface HomeEvent {
     data object CreatedClass : HomeEvent
     data object CreatedMaterial : HomeEvent
     data object JoinedClass : HomeEvent
-    data object NavigateDetail : HomeEvent
+    data object EditedMaterial : HomeEvent
 }
 
 object HomeEventBus {

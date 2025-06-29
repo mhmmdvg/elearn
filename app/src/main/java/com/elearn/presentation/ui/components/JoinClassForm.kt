@@ -31,14 +31,15 @@ fun JoinClassForm(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(16.dp)
     ) {
         Column {
             Text("Class Code")
             OutlinedTextField(
                 value = code,
-                onValueChange = { code = it },
+                onValueChange = remember { { code = it } },
                 placeholder = { Text("Enter class code") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22),

@@ -13,15 +13,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -113,109 +117,115 @@ private fun ProfileContent(
     viewModel: AuthViewModel,
     navController: NavController
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true)
-            ) {
-                viewModel.getUserId()?.let {
-                    navController.navigate(Screen.EditProfile.createRoute(it))
-                }
-            }
-            .padding(12.dp),
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier.verticalScroll(scrollState)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(bounded = true)
+                ) {
+                    viewModel.getUserId()?.let {
+                        navController.navigate(Screen.EditProfile.createRoute(it))
+                    }
+                }
+                .padding(12.dp)
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .background(
-                            color = MutedColor, shape = CircleShape
-                        )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CacheImage(
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
-                        imageUrl = userInfoState.data?.data?.imageUrl
-                            ?: "https://github.com/shadcn.png",
-                        description = "Avatar",
-                    )
+                            .size(64.dp)
+                            .background(
+                                color = MutedColor, shape = CircleShape
+                            )
+                    ) {
+                        CacheImage(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            imageUrl = userInfoState.data?.data?.imageUrl
+                                ?: "https://github.com/shadcn.png",
+                            description = "Avatar",
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "${userInfoState.data?.data?.firstName} ${userInfoState.data?.data?.lastName}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "View Profile", color = MutedForegroundColor
+                        )
+                    }
                 }
-                Column {
+
+                Icon(
+                    imageVector = Lucide.ChevronRight, contentDescription = "open"
+                )
+            }
+        }
+
+        Text(
+            modifier = Modifier.padding(horizontal = 12.dp), text = "Settings", fontSize = 14.sp
+        )
+
+        settingsList.forEach { it ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true),
+                        onClick = { /* TODO */ })
+                    .padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = "${userInfoState.data?.data?.firstName} ${userInfoState.data?.data?.lastName}",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
+                        text = it, fontSize = 18.sp, fontWeight = FontWeight.Medium
                     )
-                    Text(
-                        text = "View Profile", color = MutedForegroundColor
+                    Icon(
+                        imageVector = Lucide.ChevronRight, contentDescription = "open"
                     )
                 }
             }
-
-            Icon(
-                imageVector = Lucide.ChevronRight, contentDescription = "open"
-            )
         }
-    }
 
-    Text(
-        modifier = Modifier.padding(horizontal = 12.dp), text = "Settings", fontSize = 14.sp
-    )
+        Text(
+            modifier = Modifier.padding(horizontal = 12.dp), text = "Account", fontSize = 14.sp
+        )
 
-    settingsList.forEach { it ->
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = true),
-                    onClick = { /* TODO */ })
+                    onClick = { viewModel.logout() })
                 .padding(12.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = it, fontSize = 18.sp, fontWeight = FontWeight.Medium
-                )
-                Icon(
-                    imageVector = Lucide.ChevronRight, contentDescription = "open"
+                    text = "Log out", fontSize = 18.sp, fontWeight = FontWeight.Medium
                 )
             }
-        }
-    }
-
-    Text(
-        modifier = Modifier.padding(horizontal = 12.dp), text = "Account", fontSize = 14.sp
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true),
-                onClick = { viewModel.logout() })
-            .padding(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Log out", fontSize = 18.sp, fontWeight = FontWeight.Medium
-            )
         }
     }
 }
