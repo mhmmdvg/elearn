@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -47,6 +48,7 @@ import com.elearn.presentation.viewmodel.course.ClassListViewModel
 import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 private val navigationItems = listOf(
@@ -81,6 +83,7 @@ fun BottomNavigation(
     var joinClass by remember { mutableStateOf(false) }
     val joinState by courseViewModel.joinClass.collectAsState()
     var joinLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val userInfo: JSONObject? = decodeToken(courseViewModel.getToken().toString())
 
@@ -123,6 +126,7 @@ fun BottomNavigation(
 
             is Resource.Error -> {
                 Log.e("join-error", "Join class error: ${joinState.message}")
+                courseViewModel.resetJoinClassState()
             }
         }
     }
@@ -153,7 +157,12 @@ fun BottomNavigation(
             sheetState = sheetState,
             containerColor = PrimaryForegroundColor
         ) {
-            JoinClassForm(isLoading = joinLoading)
+            JoinClassForm(isLoading = joinLoading, onResetState = {
+                scope.launch {
+                    joinClass = false
+                    courseViewModel.resetJoinClassState()
+                }
+            })
         }
     }
 

@@ -56,6 +56,9 @@ import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.School
 import com.composables.icons.lucide.Users
 import com.elearn.presentation.Screen
+import com.elearn.presentation.ui.components.ButtonVariant
+import com.elearn.presentation.ui.components.CustomButton
+import com.elearn.presentation.ui.components.JoinClassForm
 import com.elearn.presentation.ui.components.SearchInput
 import com.elearn.presentation.ui.components.shimmerEffect
 import com.elearn.presentation.ui.model.TabList
@@ -75,7 +78,7 @@ import com.elearn.utils.Resource
 import org.json.JSONObject
 
 private val tabs = listOf(
-    TabList(title = "News", icon = Lucide.Newspaper),
+    TabList(title = "Materials", icon = Lucide.Newspaper),
     TabList(title = "Class", icon = Lucide.School)
 )
 
@@ -94,11 +97,12 @@ fun HomeScreen(
     val state = viewModel.state.value
     var addClass by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var joinClass by remember { mutableStateOf(false) } // Add this state
+    var resetJoinForm by remember { mutableStateOf(false) }
 
     /* Data */
     val classes by courseViewModel.classes.collectAsState()
     val materials by materialViewModel.materials.collectAsState()
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val userInfo by authViewModel.userInfoState.collectAsState()
 
     val isTeacher = userInfo.data?.data?.role?.name == "teacher"
@@ -158,6 +162,27 @@ fun HomeScreen(
             ClassForm(
                 onDismiss = {
                     addClass = false
+                }
+            )
+        }
+    }
+
+    if (joinClass) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                joinClass = false
+                resetJoinForm = !resetJoinForm
+                courseViewModel.resetJoinClassState()
+            },
+            sheetState = sheetState,
+            containerColor = PrimaryForegroundColor
+        ) {
+            JoinClassForm(
+                viewModel = courseViewModel,
+                isLoading = false,
+                onResetState = {
+                    joinClass = false
+                    courseViewModel.resetJoinClassState()
                 }
             )
         }
@@ -283,7 +308,8 @@ fun HomeScreen(
                                                 isTeacher = isTeacher,
                                                 isSearching = state.searchQuery.isNotBlank(),
                                                 onCreateClass = { addClass = true },
-                                                onRetry = { courseViewModel.fetchClasses() }
+                                                onRetry = { courseViewModel.fetchClasses() },
+                                                onJoinClass = { joinClass = true }
                                             )
                                         }
                                     } else {
@@ -421,7 +447,7 @@ fun NewsEmptyState(
                     },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = PrimaryColor
                 )
 
                 Text(
@@ -431,7 +457,7 @@ fun NewsEmptyState(
                         else -> "Materials and announcements from your teachers will appear here."
                     },
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = PrimaryColor,
                     textAlign = TextAlign.Center,
                     lineHeight = 20.sp
                 )
@@ -439,14 +465,11 @@ fun NewsEmptyState(
 
             // Action button
             if (!isSearching) {
-                OutlinedButton(
+                CustomButton(
+                    variant = ButtonVariant.Outline,
                     onClick = onRetry,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = PrimaryColor
-                    )
-                ) {
-                    Text("Refresh")
-                }
+                    text = "Refresh"
+                )
             }
         }
     }
@@ -457,7 +480,8 @@ fun ClassEmptyState(
     isTeacher: Boolean,
     isSearching: Boolean,
     onCreateClass: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onJoinClass: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -501,7 +525,7 @@ fun ClassEmptyState(
                     },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = PrimaryColor
                 )
 
                 Text(
@@ -511,7 +535,7 @@ fun ClassEmptyState(
                         else -> "You haven't joined any classes yet. Ask your teacher for class codes to get started."
                     },
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = PrimaryColor,
                     textAlign = TextAlign.Center,
                     lineHeight = 20.sp
                 )
@@ -522,13 +546,32 @@ fun ClassEmptyState(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (!isSearching) {
-                    OutlinedButton(
-                        onClick = onRetry,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = PrimaryColor
+                    if (isTeacher) {
+                        // For teachers: show Refresh button
+                        CustomButton(
+                            variant = ButtonVariant.Outline,
+                            onClick = onRetry,
+                            text = "Refresh"
                         )
-                    ) {
-                        Text("Refresh")
+                    } else {
+                        Button(
+                            onClick = onJoinClass,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AccentColor
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Lucide.Plus,
+                                contentDescription = null,
+                                tint = PrimaryForegroundColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Join Class",
+                                color = PrimaryForegroundColor,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
                 }
 

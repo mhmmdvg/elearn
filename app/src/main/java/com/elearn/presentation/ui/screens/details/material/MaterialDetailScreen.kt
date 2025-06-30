@@ -92,7 +92,6 @@ fun MaterialDetailScreen(
     val scrollState = rememberScrollState()
     val materialDetailState by viewModel.materialDetailState.collectAsState()
     val scope = rememberCoroutineScope()
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val userInfoState by userViewModel.userInfoState.collectAsState()
 
     /* Bottom Sheet State */
