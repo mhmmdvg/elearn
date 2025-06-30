@@ -94,6 +94,8 @@ class MaterialViewModel @Inject constructor(
             _materials.value = Resource.Loading()
 
             try {
+                materialRepository.invalidateMaterialCache()
+
                 materialRepository.fetchMaterial().fold(
                     onSuccess = {
                         _materials.value = Resource.Success(it)
@@ -174,7 +176,7 @@ class MaterialViewModel @Inject constructor(
     fun putMaterial(
         materialId: String,
         context: Context,
-        fileUri: Uri,
+        fileUri: Uri? = null,
         name: String,
         description: String?,
     ) {

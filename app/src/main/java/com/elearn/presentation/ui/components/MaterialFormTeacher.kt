@@ -1,6 +1,7 @@
 package com.elearn.presentation.ui.components
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
@@ -108,9 +109,10 @@ fun MaterialForm(
         } else null
     }
 
-    val fileError = remember(formState.selectedFileUri, formState.selectedFileName, fileTouched) {
-        if (fileTouched) viewModel.getFileError() else null
-    }
+    val fileError =
+        remember(formState.selectedFileUri, formState.selectedFileName, fileTouched, isEdit) {
+            if (fileTouched && !isEdit) viewModel.getFileError() else null
+        }
 
     val isFormValid = remember(
         formState.materialName,
@@ -121,14 +123,21 @@ fun MaterialForm(
         formState.selectedFileName
     ) {
         derivedStateOf {
-            viewModel.getMaterialNameError() == null &&
+            val basicValidation = viewModel.getMaterialNameError() == null &&
                     viewModel.getDescriptionError() == null &&
                     (if (!isInClass && (classId?.isEmpty() ?: true)) {
                         viewModel.getClassError() == null
                     } else {
                         true
-                    }) &&
-                    viewModel.getFileError() == null
+                    })
+
+            val fileValidation = if (isEdit) {
+                true
+            } else {
+                viewModel.getFileError() == null && formState.selectedFileUri != null
+            }
+
+            basicValidation && fileValidation
         }
     }
 
@@ -200,9 +209,16 @@ fun MaterialForm(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp)
             .verticalScroll(scrollState)
     ) {
+        Text(
+            text = if (isEdit) "Edit Material" else "Create Material",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .fillMaxWidth()
+        )
         // Class Selection (only show if not in class and no classId provided)
         if (!isInClass && classId?.isEmpty() ?: true) {
             Column(
@@ -384,10 +400,13 @@ fun MaterialForm(
                 if (!isFormValid.value) return@CustomButton
 
                 if (isEdit) {
+
+                    Log.d("masuk", "masuk")
+
                     materialViewModel.putMaterial(
                         materialId = materialId ?: "",
                         context = context,
-                        fileUri = formState.selectedFileUri!!,
+                        fileUri = formState.selectedFileUri,
                         name = formState.materialName,
                         description = formState.description.ifBlank { null },
                     )

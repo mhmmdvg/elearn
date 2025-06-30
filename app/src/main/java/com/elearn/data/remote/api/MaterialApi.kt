@@ -36,7 +36,7 @@ interface MaterialApi {
     @PUT("materials/{id}")
     suspend fun putMaterial(
         @Path("id") id: String,
-        @Part file: MultipartBody.Part,
+        @Part file: MultipartBody.Part?,
         @Part("name") name: RequestBody,
         @Part("description") description: RequestBody?,
     ): Response<CreateMaterialResponse>

@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,14 +27,17 @@ class ClassListViewModel @Inject constructor(
     private val tokenManager: TokenManager,
 ) : ViewModel() {
     private val _classes = MutableStateFlow<Resource<CourseResponse<List<CourseData>>>>(Resource.Success(null))
-    val classes: StateFlow<Resource<CourseResponse<List<CourseData>>>> = _classes
+    val classes: StateFlow<Resource<CourseResponse<List<CourseData>>>> = _classes.asStateFlow()
 
     private val _createClass =
         MutableStateFlow<Resource<CreateCourseResponse>>(Resource.Success(null))
-    val createClass: StateFlow<Resource<CreateCourseResponse>> = _createClass
+    val createClass: StateFlow<Resource<CreateCourseResponse>> = _createClass.asStateFlow()
 
     private val _joinClass = MutableStateFlow<Resource<CourseJoinResponse>>(Resource.Success(null))
-    val joinClass: StateFlow<Resource<CourseJoinResponse>> = _joinClass
+    val joinClass: StateFlow<Resource<CourseJoinResponse>> = _joinClass.asStateFlow()
+
+    private val _deleteClass = MutableStateFlow<Resource<CourseResponse<CourseData>>>(Resource.Success(null))
+    val deleteClass: StateFlow<Resource<CourseResponse<CourseData>>> = _deleteClass.asStateFlow()
 
     init {
         fetchClasses()
@@ -43,6 +47,7 @@ class ClassListViewModel @Inject constructor(
                 when (it) {
                     is HomeEvent.CreatedClass -> fetchClasses()
                     is HomeEvent.JoinedClass -> fetchClasses()
+                    is HomeEvent.DeletedClass -> fetchClasses()
                     else -> {}
                 }
             }
@@ -85,6 +90,9 @@ class ClassListViewModel @Inject constructor(
             _classes.value = Resource.Loading()
 
             try {
+
+                courseRepository.invalidateCourseCache()
+
                 courseRepository.fetchCourse().fold(
                     onSuccess = {
                         _classes.value = Resource.Success(it)
@@ -120,6 +128,29 @@ class ClassListViewModel @Inject constructor(
                 )
             } catch (error: Exception) {
                 _createClass.value = Resource.Error(error.message ?: "Unknown Error")
+            }
+        }
+    }
+
+    fun deleteClass(id: String) {
+        viewModelScope.launch {
+            _deleteClass.value = Resource.Loading()
+
+            try {
+                courseRepository.deleteCourse(id).fold(
+                    onSuccess = {
+                        courseRepository.invalidateCourseCache()
+                        _deleteClass.value = Resource.Success(it)
+                        HomeEventBus.homeEventEmit(HomeEvent.DeletedClass)
+                        delay(300)
+                        _deleteClass.value = Resource.Success(null)
+                    },
+                    onFailure = {
+                        _deleteClass.value = Resource.Error(it.message ?: "Unknown Error")
+                    }
+                )
+            } catch (error: Exception) {
+                _deleteClass.value = Resource.Error(error.message ?: "Unknown Error")
             }
         }
     }

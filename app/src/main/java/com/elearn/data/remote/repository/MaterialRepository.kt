@@ -98,16 +98,17 @@ class MaterialRepository @Inject constructor(
     suspend fun putMaterial(
         materialId: String,
         context: Context,
-        fileUri: Uri,
+        fileUri: Uri? = null,
         name: String,
         description: String?,
     ): Result<CreateMaterialResponse> {
         return try {
-            val file = uriToFile(context, fileUri)
-            val mimeType = getMimeType(context, fileUri)
-
-            val fileRequestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
-            val filePart = MultipartBody.Part.createFormData("file", file.name, fileRequestBody)
+            val filePart: MultipartBody.Part? = fileUri?.let { uri ->
+                val file = uriToFile(context, uri)
+                val mimeType = getMimeType(context, uri)
+                val fileRequestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("file", file.name, fileRequestBody)
+            }
             val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
             val descriptionPart = description?.toRequestBody("text/plain".toMediaTypeOrNull())
 

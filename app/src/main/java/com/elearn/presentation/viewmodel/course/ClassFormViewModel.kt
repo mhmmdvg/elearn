@@ -19,4 +19,8 @@ class ClassFormViewModel @Inject constructor() : ViewModel() {
     fun onDescriptionChanged(query: String) {
         _state.value = state.value.copy(description = query)
     }
+
+    fun resetState() {
+        _state.value = ClassFormState()
+    }
 }

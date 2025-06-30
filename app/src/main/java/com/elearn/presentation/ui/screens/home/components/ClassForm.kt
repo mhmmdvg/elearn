@@ -48,7 +48,10 @@ fun ClassForm(
     LaunchedEffect(Unit) {
         HomeEventBus.events.collectLatest { event ->
             when (event) {
-                is HomeEvent.CreatedClass -> onDismiss()
+                is HomeEvent.CreatedClass -> {
+                    onDismiss()
+                    viewModel.resetState()
+                }
                 else -> {}
             }
         }

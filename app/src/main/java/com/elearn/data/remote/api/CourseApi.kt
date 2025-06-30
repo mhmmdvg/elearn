@@ -8,6 +8,7 @@ import com.elearn.domain.model.CreateCourseRequest
 import com.elearn.domain.model.CreateCourseResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -29,4 +30,7 @@ interface CourseApi {
 
     @PATCH("courses/{id}")
     suspend fun updateCourse(@Path("id") id: String, @Body req: CreateCourseRequest): Response<CreateCourseResponse>
+
+    @DELETE("courses/{id}")
+    suspend fun deleteCourse(@Path("id") id: String): Response<CourseResponse<CourseData>>
 }

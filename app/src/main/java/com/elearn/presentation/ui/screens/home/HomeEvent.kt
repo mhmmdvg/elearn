@@ -9,6 +9,7 @@ sealed interface HomeEvent {
     data object JoinedClass : HomeEvent
     data object EditedMaterial : HomeEvent
     data object DeletedMaterial : HomeEvent
+    data object DeletedClass : HomeEvent
 }
 
 object HomeEventBus {

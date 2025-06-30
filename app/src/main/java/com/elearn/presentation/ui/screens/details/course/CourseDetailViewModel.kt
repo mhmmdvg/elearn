@@ -36,11 +36,13 @@ class CourseDetailViewModel @Inject constructor(
         MutableStateFlow<Resource<CourseResponse<CourseData>>>(Resource.Success(null))
     val courseDetailState: StateFlow<Resource<CourseResponse<CourseData>>> = _courseDetailState.asStateFlow()
 
-    fun fetchMaterialByClass(id: String) {
+    fun fetchMaterialByClass(id: String, forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _materialClassState.value = Resource.Loading()
 
             try {
+                if (forceRefresh) materialRepository.invalidateMaterialCache(id)
+
                 materialRepository.fetchMaterial(id).fold(
                     onSuccess = {
                         materialRepository.invalidateMaterialCache()
@@ -57,11 +59,14 @@ class CourseDetailViewModel @Inject constructor(
         }
     }
 
-    fun fetchCourseDetail(id: String) {
+    fun fetchCourseDetail(id: String, forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _courseDetailState.value = Resource.Loading()
 
             try {
+
+                if (forceRefresh) courseRepository.invalidateCourseDetailCache(id)
+
                 courseRepository.fetchCourseDetail(id).fold(
                     onSuccess = {
                         _courseDetailState.value = Resource.Success(it)
@@ -85,6 +90,7 @@ class CourseDetailViewModel @Inject constructor(
                courseRepository.updateCourse(id, CreateCourseRequest(name = name)).fold(
                    onSuccess = {
                        _courseNameUpdated.value = Resource.Success(it)
+                       courseRepository.invalidateCourseDetailCache(id)
                        CourseDetailEventBus.editCourseEventEmit(CourseDetailEvent.UpdateCourse)
                        _courseNameUpdated.value = Resource.Success(null)
                    },
@@ -107,6 +113,7 @@ class CourseDetailViewModel @Inject constructor(
                 courseRepository.updateCourse(id, CreateCourseRequest(description = description)).fold(
                     onSuccess = {
                         _courseDescriptionUpdated.value = Resource.Success(it)
+                        courseRepository.invalidateCourseDetailCache(id)
                         CourseDetailEventBus.editCourseEventEmit(CourseDetailEvent.UpdateCourse)
                         delay(300)
                         _courseDescriptionUpdated.value = Resource.Success(null)

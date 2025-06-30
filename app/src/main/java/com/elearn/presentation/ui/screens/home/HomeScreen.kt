@@ -1,15 +1,11 @@
 package com.elearn.presentation.ui.screens.home
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,9 +17,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -32,10 +25,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,7 +51,6 @@ import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.School
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.SearchInput
-import com.elearn.presentation.ui.model.CardModel
 import com.elearn.presentation.ui.model.TabList
 import com.elearn.presentation.ui.screens.home.components.ChipTabs
 import com.elearn.presentation.ui.screens.home.components.ClassCard
@@ -99,11 +91,40 @@ fun HomeScreen(
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val userInfo: JSONObject? = decodeToken(viewModel.getToken().toString())
 
+    val filteredMaterials = remember(state.searchQuery, materials) {
+        derivedStateOf {
+            if (state.searchQuery.isBlank()) {
+                materials.data?.data?.materials
+            } else {
+                materials.data?.data?.materials?.filter { material ->
+                    material.name.contains(state.searchQuery, ignoreCase = true) ||
+                            material.course.name.contains(state.searchQuery, ignoreCase = true)
+                }
+            }
+        }
+    }.value
+
+    val filteredClasses = remember(state.searchQuery, classes) {
+        derivedStateOf {
+            if (state.searchQuery.isBlank()) {
+                classes.data?.data
+            } else {
+                classes.data?.data?.filter { classItem ->
+                    classItem.name.contains(state.searchQuery, ignoreCase = true)
+                }
+            }
+        }
+    }.value
+
     // Handle refresh completion
     LaunchedEffect(classes, materials) {
         if (classes !is Resource.Loading && materials !is Resource.Loading) {
             isRefreshing = false
         }
+    }
+
+    LaunchedEffect(state.selectedTabIndex) {
+        viewModel.onQueryChanged("")
     }
 
     if (addClass) {
@@ -112,9 +133,6 @@ fun HomeScreen(
             sheetState = sheetState,
             containerColor = Color.White
         ) {
-            Column(
-                modifier = Modifier.height(screenHeight * 0.55f)
-            ) {
                 Text(
                     text = "Class",
                     fontSize = 20.sp,
@@ -125,9 +143,10 @@ fun HomeScreen(
                 )
 
                 ClassForm(
-                    onDismiss = { addClass = false }
+                    onDismiss = {
+                        addClass = false
+                    }
                 )
-            }
         }
     }
 
@@ -160,7 +179,8 @@ fun HomeScreen(
                         )
                         SearchInput(
                             query = state.searchQuery,
-                            onQueryChanged = { viewModel.onQueryChanged(it) }
+                            onQueryChanged = { viewModel.onQueryChanged(it) },
+                            placeholder = if (state.selectedTabIndex == 0) "Search materials..." else "Search classes..."
                         )
                     }
                 }
@@ -170,7 +190,7 @@ fun HomeScreen(
                     0 -> {
                         when (materials) {
                             is Resource.Success -> {
-                                materials.data?.data?.materials?.let {
+                                filteredMaterials?.let {
                                     items(
                                         items = it,
                                         key = { it.id }
@@ -178,7 +198,13 @@ fun HomeScreen(
                                         NewsCard(
                                             material = item,
                                             className = item.course.name,
-                                            onClick = { navController.navigate(Screen.MaterialDetail.createRoute(item.id)) }
+                                            onClick = {
+                                                navController.navigate(
+                                                    Screen.MaterialDetail.createRoute(
+                                                        item.id
+                                                    )
+                                                )
+                                            }
                                         )
                                     }
                                 }
@@ -221,13 +247,14 @@ fun HomeScreen(
                     1 -> {
                         when (classes) {
                             is Resource.Success -> {
-                                classes.data?.data?.let {
+                                filteredClasses?.let {
                                     items(
                                         items = it,
                                         key = { it.id }
                                     ) { item ->
                                         ClassCard(
                                             className = item.name,
+                                            classDescription = item.description,
                                             onClick = {
                                                 navController.navigate(
                                                     Screen.CourseDetail.createRoute(
@@ -235,7 +262,9 @@ fun HomeScreen(
                                                     )
                                                 )
                                             },
-                                            onMore = { /* TODO */ },
+                                            onDelete = {
+                                                courseViewModel.deleteClass(item.id)
+                                            }
                                         )
                                     }
                                 }

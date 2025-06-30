@@ -110,9 +110,14 @@ fun MaterialDetailScreen(
         HomeEventBus.events.collectLatest { event ->
             when (event) {
                 is HomeEvent.CreatedMaterial -> {
-                    // Refresh the material detail after successful edit
                     viewModel.fetchMaterialDetail(materialId)
                     showEditBottomSheet = false
+                }
+
+                is HomeEvent.DeletedMaterial -> {
+                    viewModel.fetchMaterials()
+                    showDeleteConfirmationSheet = false
+                    navController.popBackStack()
                 }
 
                 else -> {}
@@ -144,33 +149,20 @@ fun MaterialDetailScreen(
             sheetState = editSheetState,
             containerColor = PrimaryForegroundColor
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(screenHeight * 0.8f)
-                    .padding(top = 16.dp)
-            ) {
-                Text(
-                    text = "Edit Material",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
-                MaterialForm(
-                    viewModel = materialFormViewModel,
-                    isInClass = true,
-                    materialId = materialDetailState.data?.data?.id,
-                    isEdit = true,
-                    classId = materialDetailState.data?.data?.classId ?: "",
-                    onSuccess = {
-                        scope.launch {
-                            editSheetState.hide()
-                            showEditBottomSheet = false
-                        }
+            MaterialForm(
+                viewModel = materialFormViewModel,
+                isInClass = true,
+                materialId = materialDetailState.data?.data?.id,
+                isEdit = true,
+                classId = materialDetailState.data?.data?.classId ?: "",
+                onSuccess = {
+                    scope.launch {
+                        editSheetState.hide()
+                        showEditBottomSheet = false
                     }
-                )
-            }
+                }
+            )
+
         }
     }
 
@@ -190,8 +182,6 @@ fun MaterialDetailScreen(
                     scope.launch {
                         deleteSheetState.hide()
                         showDeleteConfirmationSheet = false
-                        // Navigate back after deletion
-                        navController.popBackStack()
                     }
                 },
                 onCancel = {
