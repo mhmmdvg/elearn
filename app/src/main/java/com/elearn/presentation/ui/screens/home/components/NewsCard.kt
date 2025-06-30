@@ -110,31 +110,6 @@ fun NewsCard(
                         )
                     }
                 }
-
-                // New material indicator
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.1f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Lucide.Plus,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = Color(0xFF10B981)
-                        )
-                        Text(
-                            text = "New",
-                            fontSize = 10.sp,
-                            color = Color(0xFF10B981),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
             }
 
             // Material preview section

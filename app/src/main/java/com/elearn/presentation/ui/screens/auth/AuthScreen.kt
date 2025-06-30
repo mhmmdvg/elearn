@@ -115,6 +115,7 @@ fun AuthScreen(
 
             // Email Input Field
             OutlinedTextField(
+                readOnly = state.isEmailValid,
                 value = state.email,
                 onValueChange = { viewModel.onEmailChanged(it) },
                 modifier = Modifier.fillMaxWidth(),
@@ -122,7 +123,7 @@ fun AuthScreen(
                 shape = RoundedCornerShape(22),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = PrimaryColor,
-                    unfocusedTextColor = MutedForegroundColor,
+                    unfocusedTextColor = PrimaryColor,
                     focusedBorderColor = PrimaryColor,
                     unfocusedBorderColor = MutedColor,
                 ),
@@ -169,6 +170,7 @@ fun AuthScreen(
                         shape = RoundedCornerShape(22),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = PrimaryColor,
+                            unfocusedTextColor = PrimaryColor,
                             focusedBorderColor = PrimaryColor,
                             unfocusedBorderColor = MutedColor,
                         ),

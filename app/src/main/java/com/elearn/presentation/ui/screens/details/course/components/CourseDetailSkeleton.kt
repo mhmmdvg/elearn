@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.elearn.presentation.ui.components.shimmerEffect
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 
@@ -239,41 +240,4 @@ fun MaterialCardSkeleton() {
             }
         }
     }
-}
-
-// Shimmer effect modifier
-fun Modifier.shimmerEffect(): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val alpha = transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    ).value
-
-    val density = LocalDensity.current
-    val translateAnimation = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (density.density * 1000f),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "translate"
-    ).value
-
-    this.background(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.Gray.copy(alpha = alpha),
-                Color.LightGray.copy(alpha = alpha),
-                Color.Gray.copy(alpha = alpha)
-            ),
-            start = Offset(translateAnimation - 1000f, translateAnimation - 1000f),
-            end = Offset(translateAnimation, translateAnimation)
-        )
-    )
 }

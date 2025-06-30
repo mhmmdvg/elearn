@@ -102,3 +102,8 @@ data class CachedMaterialData(
     val data: MaterialResponse,
     val timestamp: Long
 )
+
+data class CacheMaterialDetail(
+    val data: HTTPResponse<MaterialData>,
+    val timestamp: Long
+)

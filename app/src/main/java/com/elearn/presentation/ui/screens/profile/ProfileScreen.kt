@@ -60,9 +60,11 @@ import com.composables.icons.lucide.Lucide
 import com.elearn.domain.model.UserResponse
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.CacheImage
+import com.elearn.presentation.ui.components.shimmerEffect
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
+import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.utils.Resource
 import kotlinx.coroutines.launch
@@ -133,6 +135,7 @@ fun ProfileScreen(
     // Logout confirmation bottom sheet
     if (showLogoutBottomSheet) {
         ModalBottomSheet(
+            containerColor = PrimaryForegroundColor,
             onDismissRequest = { showLogoutBottomSheet = false },
             sheetState = bottomSheetState,
             dragHandle = {
@@ -334,7 +337,7 @@ private fun LogoutConfirmationContent(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = "Yes, Logout",
@@ -349,12 +352,13 @@ private fun LogoutConfirmationContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = "Cancel",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = PrimaryColor
                 )
             }
         }
@@ -486,31 +490,4 @@ private fun ProfileSkeleton() {
             )
         }
     }
-}
-
-fun Modifier.shimmerEffect(): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val alpha = transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 1000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shimmer_alpha"
-    )
-    background(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.Gray.copy(alpha = alpha.value),
-                Color.LightGray.copy(alpha = alpha.value),
-                Color.Gray.copy(alpha = alpha.value)
-            ),
-            start = Offset.Zero,
-            end = Offset(x = 1000f, y = 100f)
-        )
-    )
 }

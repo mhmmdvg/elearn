@@ -67,12 +67,12 @@ import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.ButtonVariant
 import com.elearn.presentation.ui.components.CustomButton
 import com.elearn.presentation.ui.components.MaterialForm
+import com.elearn.presentation.ui.components.shimmerEffect
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.screens.details.course.components.CourseDetailSkeleton
 import com.elearn.presentation.ui.screens.details.course.components.EmptyMaterialsState
 import com.elearn.presentation.ui.screens.details.course.components.EnhancedMaterialCard
 import com.elearn.presentation.ui.screens.details.course.components.MaterialCardSkeleton
-import com.elearn.presentation.ui.screens.details.course.components.shimmerEffect
 import com.elearn.presentation.ui.screens.home.HomeEvent
 import com.elearn.presentation.ui.screens.home.HomeEventBus
 import com.elearn.presentation.ui.theme.MutedColor

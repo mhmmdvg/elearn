@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Newspaper
 import com.elearn.presentation.ui.model.TabList
+import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
@@ -72,7 +73,7 @@ fun Chip(
 ) {
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (selected) PrimaryColor else PrimaryForegroundColor,
+        targetValue = if (selected) AccentColor else PrimaryForegroundColor,
         animationSpec = tween(durationMillis = 250),
         label = "backgroundColorAnimation"
     )
@@ -87,7 +88,7 @@ fun Chip(
         label = "iconColorAnimation"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (selected) PrimaryColor else MutedColor,
+        targetValue = if (selected) AccentColor else MutedColor,
         animationSpec = tween(250),
         label = "borderColorAnimation"
     )
