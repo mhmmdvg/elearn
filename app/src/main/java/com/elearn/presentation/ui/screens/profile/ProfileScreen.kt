@@ -24,15 +24,24 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -41,6 +50,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -55,6 +65,7 @@ import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.utils.Resource
+import kotlinx.coroutines.launch
 
 private val settingsList = listOf(
     "Application",
@@ -62,6 +73,7 @@ private val settingsList = listOf(
     "Storage",
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
@@ -72,6 +84,13 @@ fun ProfileScreen(
     /* State */
     val authState by viewModel.authLogoutState.collectAsState()
     val userInfoState by viewModel.userInfoState.collectAsState()
+
+    // Bottom sheet state
+    var showLogoutBottomSheet by remember { mutableStateOf(false) }
+    val bottomSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(authState) {
         when (authState) {
@@ -104,9 +123,46 @@ fun ProfileScreen(
                 ProfileContent(
                     userInfoState = userInfoState,
                     viewModel = viewModel,
-                    navController = navController
+                    navController = navController,
+                    onLogoutClick = { showLogoutBottomSheet = true }
                 )
             }
+        }
+    }
+
+    // Logout confirmation bottom sheet
+    if (showLogoutBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showLogoutBottomSheet = false },
+            sheetState = bottomSheetState,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(
+                            color = MutedColor,
+                            shape = RoundedCornerShape(2.dp)
+                        )
+                )
+            }
+        ) {
+            LogoutConfirmationContent(
+                onConfirmLogout = {
+                    scope.launch {
+                        bottomSheetState.hide()
+                        showLogoutBottomSheet = false
+                        viewModel.logout()
+                    }
+                },
+                onCancel = {
+                    scope.launch {
+                        bottomSheetState.hide()
+                        showLogoutBottomSheet = false
+                    }
+                }
+            )
         }
     }
 }
@@ -115,7 +171,8 @@ fun ProfileScreen(
 private fun ProfileContent(
     userInfoState: Resource<UserResponse>,
     viewModel: AuthViewModel,
-    navController: NavController
+    navController: NavController,
+    onLogoutClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -216,7 +273,7 @@ private fun ProfileContent(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = true),
-                    onClick = { viewModel.logout() })
+                    onClick = onLogoutClick)
                 .padding(12.dp)
         ) {
             Row(
@@ -227,6 +284,82 @@ private fun ProfileContent(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LogoutConfirmationContent(
+    onConfirmLogout: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Title
+        Text(
+            text = "Logout Confirmation",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Description
+        Text(
+            text = "Are you sure you want to logout? You'll need to sign in again to access your account.",
+            fontSize = 16.sp,
+            color = MutedForegroundColor,
+            textAlign = TextAlign.Center,
+            lineHeight = 22.sp
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Action buttons
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Logout button
+            Button(
+                onClick = onConfirmLogout,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Yes, Logout",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Cancel button
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Cancel",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

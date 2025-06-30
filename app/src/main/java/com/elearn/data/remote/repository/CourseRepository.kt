@@ -17,6 +17,7 @@ class CourseRepository @Inject constructor(
     private val courseApi: CourseApi
 ) {
     private var courseListCache: CourseResponse<List<CourseData>>? = null
+    private var _courseDetailCache: MutableMap<String, CourseResponse<CourseData>> = mutableMapOf()
 
     suspend fun fetchCourse(): Result<CourseResponse<List<CourseData>>> {
 
@@ -43,11 +44,17 @@ class CourseRepository @Inject constructor(
     }
 
     suspend fun fetchCourseDetail(courseId: String): Result<CourseResponse<CourseData>> {
+        val cachedData = _courseDetailCache[courseId]
+        if (cachedData != null) {
+            return Result.success(cachedData)
+        }
+
         return try {
             val res = courseApi.getCourseDetail(courseId)
 
             if (res.isSuccessful) {
                 res.body()?.let {
+                    _courseDetailCache[courseId] = it
                     Result.success(it)
                 } ?: Result.failure(Exception("Empty Response Body"))
             } else {
@@ -97,7 +104,10 @@ class CourseRepository @Inject constructor(
         }
     }
 
-    suspend fun updateCourse(courseId: String, payload: CreateCourseRequest): Result<CreateCourseResponse> {
+    suspend fun updateCourse(
+        courseId: String,
+        payload: CreateCourseRequest
+    ): Result<CreateCourseResponse> {
         return try {
             val res = courseApi.updateCourse(courseId, payload)
 
@@ -115,12 +125,39 @@ class CourseRepository @Inject constructor(
         }
     }
 
-    fun getCacheCourseList(): CourseResponse<List<CourseData>>? {
-        val cachedData = courseListCache
-        return if (cachedData != null) cachedData else null
+    suspend fun deleteCourse(courseId: String): Result<CourseResponse<CourseData>> {
+        return try {
+            val res = courseApi.deleteCourse(courseId)
+
+            if (res.isSuccessful) {
+                res.body()?.let {
+                    Result.success(it)
+                } ?: Result.failure(Exception("Empty response body"))
+            } else {
+                val errorBody = res.errorBody()?.string()
+                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+                Result.failure(Exception(errorResponse.error))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
     }
 
-    fun invalidateCourseCache() {
-        courseListCache = null
+        fun getCacheCourseList(): CourseResponse<List<CourseData>>? {
+            val cachedData = courseListCache
+            return if (cachedData != null) cachedData else null
+        }
+
+        fun invalidateCourseCache() {
+            courseListCache = null
+        }
+
+        fun invalidateCourseDetailCache(id: String) {
+            _courseDetailCache.remove(id)
+        }
+
+        fun invalidateAllCaches() {
+            courseListCache = null
+            _courseDetailCache.clear()
+        }
     }
-}
