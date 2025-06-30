@@ -39,6 +39,7 @@ import com.composables.icons.lucide.SquarePlus
 import com.composables.icons.lucide.User
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.model.NavigationItem
+import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
@@ -187,7 +188,7 @@ fun BottomNavigation(
                     Icon(
                         imageVector = it.icon,
                         contentDescription = it.title,
-                        tint = if (index == selectedNavigationIndex.intValue) PrimaryColor else MutedColor
+                        tint = if (index == selectedNavigationIndex.intValue) AccentColor else MutedColor
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

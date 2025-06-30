@@ -17,11 +17,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,16 +49,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.BookOpen
+import com.composables.icons.lucide.FileText
 import com.composables.icons.lucide.Newspaper
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.School
+import com.composables.icons.lucide.Users
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.SearchInput
 import com.elearn.presentation.ui.model.TabList
+import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.screens.home.components.ChipTabs
 import com.elearn.presentation.ui.screens.home.components.ClassCard
 import com.elearn.presentation.ui.screens.home.components.ClassForm
 import com.elearn.presentation.ui.screens.home.components.NewsCard
+import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
@@ -77,6 +85,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     courseViewModel: ClassListViewModel = hiltViewModel(),
     materialViewModel: MaterialViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
     navController: NavController
 ) {
     /* State */
@@ -89,7 +98,10 @@ fun HomeScreen(
     val classes by courseViewModel.classes.collectAsState()
     val materials by materialViewModel.materials.collectAsState()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val userInfo: JSONObject? = decodeToken(viewModel.getToken().toString())
+    val userInfo by authViewModel.userInfoState.collectAsState()
+
+    val isTeacher = userInfo.data?.data?.role?.name == "teacher"
+    val isStudent = userInfo.data?.data?.role?.name == "student"
 
     val filteredMaterials = remember(state.searchQuery, materials) {
         derivedStateOf {
@@ -131,22 +143,22 @@ fun HomeScreen(
         ModalBottomSheet(
             onDismissRequest = { addClass = false },
             sheetState = sheetState,
-            containerColor = Color.White
+            containerColor = PrimaryForegroundColor
         ) {
-                Text(
-                    text = "Class",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp, horizontal = 12.dp)
-                )
+            Text(
+                text = "Class",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp, horizontal = 12.dp)
+            )
 
-                ClassForm(
-                    onDismiss = {
-                        addClass = false
-                    }
-                )
+            ClassForm(
+                onDismiss = {
+                    addClass = false
+                }
+            )
         }
     }
 
@@ -190,23 +202,39 @@ fun HomeScreen(
                     0 -> {
                         when (materials) {
                             is Resource.Success -> {
-                                filteredMaterials?.let {
-                                    items(
-                                        items = it,
-                                        key = { it.id }
-                                    ) { item ->
-                                        NewsCard(
-                                            material = item,
-                                            className = item.course.name,
-                                            onClick = {
-                                                navController.navigate(
-                                                    Screen.MaterialDetail.createRoute(
-                                                        item.id
+                                filteredMaterials?.let { materialList ->
+                                    if (materialList.isEmpty()) {
+                                        item {
+                                            NewsEmptyState(
+                                                isTeacher = isTeacher,
+                                                isSearching = state.searchQuery.isNotBlank(),
+                                                onRetry = { materialViewModel.fetchMaterials() }
+                                            )
+                                        }
+                                    } else {
+                                        items(
+                                            items = materialList,
+                                            key = { it.id }
+                                        ) { item ->
+                                            NewsCard(
+                                                material = item,
+                                                className = item.course.name,
+                                                onClick = {
+                                                    navController.navigate(
+                                                        Screen.MaterialDetail.createRoute(
+                                                            item.id
+                                                        )
                                                     )
-                                                )
-                                            }
-                                        )
+                                                }
+                                            )
+                                        }
                                     }
+                                } ?: item {
+                                    NewsEmptyState(
+                                        isTeacher = isTeacher,
+                                        isSearching = false,
+                                        onRetry = { materialViewModel.fetchMaterials() }
+                                    )
                                 }
                             }
 
@@ -247,26 +275,44 @@ fun HomeScreen(
                     1 -> {
                         when (classes) {
                             is Resource.Success -> {
-                                filteredClasses?.let {
-                                    items(
-                                        items = it,
-                                        key = { it.id }
-                                    ) { item ->
-                                        ClassCard(
-                                            className = item.name,
-                                            classDescription = item.description,
-                                            onClick = {
-                                                navController.navigate(
-                                                    Screen.CourseDetail.createRoute(
-                                                        item.id
+                                filteredClasses?.let { classList ->
+                                    if (classList.isEmpty()) {
+                                        item {
+                                            ClassEmptyState(
+                                                isTeacher = isTeacher,
+                                                isSearching = state.searchQuery.isNotBlank(),
+                                                onCreateClass = { addClass = true },
+                                                onRetry = { courseViewModel.fetchClasses() }
+                                            )
+                                        }
+                                    } else {
+                                        items(
+                                            items = classList,
+                                            key = { it.id }
+                                        ) { item ->
+                                            ClassCard(
+                                                className = item.name,
+                                                classDescription = item.description,
+                                                onClick = {
+                                                    navController.navigate(
+                                                        Screen.CourseDetail.createRoute(
+                                                            item.id
+                                                        )
                                                     )
-                                                )
-                                            },
-                                            onDelete = {
-                                                courseViewModel.deleteClass(item.id)
-                                            }
-                                        )
+                                                },
+                                                onDelete = {
+                                                    courseViewModel.deleteClass(item.id)
+                                                }
+                                            )
+                                        }
                                     }
+                                } ?: item {
+                                    ClassEmptyState(
+                                        isTeacher = isTeacher,
+                                        isSearching = false,
+                                        onCreateClass = { addClass = true },
+                                        onRetry = { courseViewModel.fetchClasses() }
+                                    )
                                 }
                             }
 
@@ -307,13 +353,13 @@ fun HomeScreen(
             }
         }
 
-        if (state.selectedTabIndex == 1 && userInfo?.getString("role") == "teacher") {
+        if (state.selectedTabIndex == 1 && isTeacher) {
             FloatingActionButton(
                 onClick = { addClass = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
-                containerColor = PrimaryColor,
+                containerColor = AccentColor,
                 shape = CircleShape
             ) {
                 Icon(
@@ -321,6 +367,189 @@ fun HomeScreen(
                     contentDescription = "Add",
                     tint = PrimaryForegroundColor
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsEmptyState(
+    isTeacher: Boolean,
+    isSearching: Boolean,
+    onRetry: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(300.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            // Icon
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        color = PrimaryColor.copy(alpha = 0.1f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isSearching) Lucide.FileText else Lucide.Newspaper,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = PrimaryColor
+                )
+            }
+
+            // Title and description
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = if (isSearching) {
+                        "No materials found"
+                    } else {
+                        "No materials yet"
+                    },
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = when {
+                        isSearching -> "Try adjusting your search terms to find what you're looking for."
+                        isTeacher -> "Start by creating your first class and adding materials for your students."
+                        else -> "Materials and announcements from your teachers will appear here."
+                    },
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+            }
+
+            // Action button
+            if (!isSearching) {
+                OutlinedButton(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = PrimaryColor
+                    )
+                ) {
+                    Text("Refresh")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClassEmptyState(
+    isTeacher: Boolean,
+    isSearching: Boolean,
+    onCreateClass: () -> Unit,
+    onRetry: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(300.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            // Icon
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        color = PrimaryColor.copy(alpha = 0.1f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isSearching) Lucide.BookOpen else if (isTeacher) Lucide.School else Lucide.Users,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = PrimaryColor
+                )
+            }
+
+            // Title and description
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = if (isSearching) {
+                        "No classes found"
+                    } else {
+                        "No classes yet"
+                    },
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = when {
+                        isSearching -> "Try adjusting your search terms to find the class you're looking for."
+                        isTeacher -> "Create your first class to start teaching and sharing materials with students."
+                        else -> "You haven't joined any classes yet. Ask your teacher for class codes to get started."
+                    },
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+            }
+
+            // Action buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (!isSearching) {
+                    OutlinedButton(
+                        onClick = onRetry,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PrimaryColor
+                        )
+                    ) {
+                        Text("Refresh")
+                    }
+                }
+
+                if (isTeacher && !isSearching) {
+                    Button(
+                        onClick = onCreateClass,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentColor
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Lucide.Plus,
+                            contentDescription = null,
+                            tint = PrimaryForegroundColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Create Class",
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -483,6 +712,27 @@ fun Modifier.shimmerEffect(): Modifier {
 fun HomeScreenPreview() {
     val navController = rememberNavController()
     HomeScreen(navController = navController)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun NewsEmptyStatePreview() {
+    NewsEmptyState(
+        isTeacher = true,
+        isSearching = false,
+        onRetry = {}
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ClassEmptyStatePreview() {
+    ClassEmptyState(
+        isTeacher = false,
+        isSearching = false,
+        onCreateClass = {},
+        onRetry = {}
+    )
 }
 
 @Preview(showBackground = true)

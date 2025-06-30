@@ -63,6 +63,7 @@ import com.elearn.presentation.ui.components.CacheImage
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
+import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.utils.Resource
 import kotlinx.coroutines.launch
@@ -133,6 +134,7 @@ fun ProfileScreen(
     // Logout confirmation bottom sheet
     if (showLogoutBottomSheet) {
         ModalBottomSheet(
+            containerColor = PrimaryForegroundColor,
             onDismissRequest = { showLogoutBottomSheet = false },
             sheetState = bottomSheetState,
             dragHandle = {
@@ -334,7 +336,7 @@ private fun LogoutConfirmationContent(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = "Yes, Logout",
@@ -349,12 +351,13 @@ private fun LogoutConfirmationContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = "Cancel",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = PrimaryColor
                 )
             }
         }
