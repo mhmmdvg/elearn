@@ -23,7 +23,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -39,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,9 +46,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.BookOpen
 import com.composables.icons.lucide.FileText
+import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Newspaper
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.School
@@ -71,11 +69,10 @@ import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.course.ClassFormViewModel
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
 import com.elearn.presentation.viewmodel.material.MaterialViewModel
-import com.elearn.utils.JwtConvert.decodeToken
 import com.elearn.utils.Resource
-import org.json.JSONObject
 
 private val tabs = listOf(
     TabList(title = "Materials", icon = Lucide.Newspaper),
@@ -87,6 +84,7 @@ private val tabs = listOf(
 fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
+    classFormViewModel: ClassFormViewModel = hiltViewModel(),
     courseViewModel: ClassListViewModel = hiltViewModel(),
     materialViewModel: MaterialViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
@@ -146,12 +144,15 @@ fun HomeScreen(
 
     if (addClass) {
         ModalBottomSheet(
-            onDismissRequest = { addClass = false },
+            onDismissRequest = {
+                addClass = false
+                classFormViewModel.resetState()
+            },
             sheetState = sheetState,
             containerColor = PrimaryForegroundColor
         ) {
             Text(
-                text = "Class",
+                text = "Create Class",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
