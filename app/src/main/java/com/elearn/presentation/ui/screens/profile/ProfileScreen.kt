@@ -60,6 +60,7 @@ import com.composables.icons.lucide.Lucide
 import com.elearn.domain.model.UserResponse
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.CacheImage
+import com.elearn.presentation.ui.components.shimmerEffect
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
@@ -489,31 +490,4 @@ private fun ProfileSkeleton() {
             )
         }
     }
-}
-
-fun Modifier.shimmerEffect(): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val alpha = transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 1000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shimmer_alpha"
-    )
-    background(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.Gray.copy(alpha = alpha.value),
-                Color.LightGray.copy(alpha = alpha.value),
-                Color.Gray.copy(alpha = alpha.value)
-            ),
-            start = Offset.Zero,
-            end = Offset(x = 1000f, y = 100f)
-        )
-    )
 }

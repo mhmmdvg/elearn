@@ -57,6 +57,7 @@ import com.composables.icons.lucide.School
 import com.composables.icons.lucide.Users
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.SearchInput
+import com.elearn.presentation.ui.components.shimmerEffect
 import com.elearn.presentation.ui.model.TabList
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.screens.home.components.ChipTabs
@@ -699,12 +700,6 @@ fun ClassCardSkeleton() {
             )
         }
     }
-}
-
-// Extension function for shimmer effect
-@Composable
-fun Modifier.shimmerEffect(): Modifier {
-    return this
 }
 
 @Preview(showBackground = true)

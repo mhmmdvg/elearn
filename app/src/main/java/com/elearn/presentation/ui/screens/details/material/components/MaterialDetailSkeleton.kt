@@ -31,6 +31,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.elearn.presentation.ui.components.shimmerEffect
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 
@@ -271,32 +272,4 @@ fun MaterialDetailSkeleton() {
             }
         }
     }
-}
-
-@Composable
-fun Modifier.shimmerEffect(): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val alpha = transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 1000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shimmer_alpha"
-    )
-    background(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.Gray.copy(alpha = alpha.value),
-                Color.LightGray.copy(alpha = alpha.value),
-                Color.Gray.copy(alpha = alpha.value)
-            ),
-            start = Offset.Zero,
-            end = Offset(x = 1000f, y = 100f)
-        )
-    )
 }
