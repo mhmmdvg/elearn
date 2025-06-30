@@ -2,10 +2,8 @@ package com.elearn.presentation.viewmodel.material
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elearn.data.remote.repository.MaterialRepository
 import com.elearn.domain.model.CreateMaterialResponse
 import com.elearn.domain.model.HTTPResponse
@@ -30,14 +28,25 @@ class MaterialViewModel @Inject constructor(
     private val _materials = MutableStateFlow<Resource<MaterialResponse>>(Resource.Success(null))
     val materials: StateFlow<Resource<MaterialResponse>> = _materials.asStateFlow()
 
-    private val _createMaterialState = MutableStateFlow<Resource<CreateMaterialResponse>>(Resource.Success(null))
-    val createMaterialState: StateFlow<Resource<CreateMaterialResponse>> = _createMaterialState.asStateFlow()
+    private val _createMaterialState =
+        MutableStateFlow<Resource<CreateMaterialResponse>>(Resource.Success(null))
+    val createMaterialState: StateFlow<Resource<CreateMaterialResponse>> =
+        _createMaterialState.asStateFlow()
 
-    private val _editMaterialState = MutableStateFlow<Resource<CreateMaterialResponse>>(Resource.Success(null))
-    val editMaterialState: StateFlow<Resource<CreateMaterialResponse>> = _editMaterialState.asStateFlow()
+    private val _editMaterialState =
+        MutableStateFlow<Resource<CreateMaterialResponse>>(Resource.Success(null))
+    val editMaterialState: StateFlow<Resource<CreateMaterialResponse>> =
+        _editMaterialState.asStateFlow()
 
-    private val _materialDetailState = MutableStateFlow<Resource<HTTPResponse<MaterialData>>>(Resource.Success(null))
-    val materialDetailState: StateFlow<Resource<HTTPResponse<MaterialData>>> = _materialDetailState.asStateFlow()
+    private val _materialDetailState =
+        MutableStateFlow<Resource<HTTPResponse<MaterialData>>>(Resource.Success(null))
+    val materialDetailState: StateFlow<Resource<HTTPResponse<MaterialData>>> =
+        _materialDetailState.asStateFlow()
+
+    private val _deleteMaterialState =
+        MutableStateFlow<Resource<HTTPResponse<MaterialData>>>(Resource.Success(null))
+    val deleteMaterialState: StateFlow<Resource<HTTPResponse<MaterialData>>> =
+        _deleteMaterialState.asStateFlow()
 
     init {
         fetchMaterials()
@@ -45,7 +54,7 @@ class MaterialViewModel @Inject constructor(
         viewModelScope.launch {
             HomeEventBus.events.collectLatest {
                 when (it) {
-                    is HomeEvent.CreatedMaterial -> fetchMaterials()
+                    is HomeEvent.CreatedMaterial, HomeEvent.DeletedMaterial -> fetchMaterials()
                     else -> {}
                 }
             }
@@ -112,7 +121,8 @@ class MaterialViewModel @Inject constructor(
                         _materialDetailState.value = Resource.Success(it)
                     },
                     onFailure = {
-                        _materialDetailState.value = Resource.Error(it.message ?: "Fetch material detail failed")
+                        _materialDetailState.value =
+                            Resource.Error(it.message ?: "Fetch material detail failed")
                     }
                 )
             } catch (error: Exception) {
@@ -197,6 +207,29 @@ class MaterialViewModel @Inject constructor(
                     message = error.message ?: "Unknown error occurred",
                     data = null
                 )
+            }
+        }
+    }
+
+    fun deleteMaterial(id: String) {
+        viewModelScope.launch {
+            _deleteMaterialState.value = Resource.Loading()
+
+            try {
+                materialRepository.deleteMaterial(id).fold(
+                    onSuccess = {
+                        _deleteMaterialState.value = Resource.Success(it)
+                        HomeEventBus.homeEventEmit(HomeEvent.DeletedMaterial)
+                        delay(300)
+                        _deleteMaterialState.value = Resource.Success(null)
+                    },
+                    onFailure = {
+                        _deleteMaterialState.value =
+                            Resource.Error(it.message ?: "Delete material failed")
+                    }
+                )
+            } catch (error: Exception) {
+                _deleteMaterialState.value = Resource.Error(error.message ?: "Unknown Error")
             }
         }
     }

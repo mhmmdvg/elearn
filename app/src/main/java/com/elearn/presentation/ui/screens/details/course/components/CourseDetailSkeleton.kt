@@ -39,12 +39,12 @@ fun CourseDetailSkeleton() {
             .fillMaxWidth()
             .background(
                 color = PrimaryForegroundColor,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(18.dp)
             )
             .border(
                 width = 1.dp,
                 color = MutedColor,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(18.dp)
             )
     ) {
         Column(
@@ -61,11 +61,14 @@ fun CourseDetailSkeleton() {
                     modifier = Modifier
                         .weight(1f)
                         .height(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .shimmerEffect()
                 )
+                Spacer(modifier = Modifier.width(12.dp))
                 Box(
                     modifier = Modifier
                         .size(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
                         .shimmerEffect()
                 )
             }
@@ -81,11 +84,13 @@ fun CourseDetailSkeleton() {
                         modifier = Modifier
                             .width(100.dp)
                             .height(20.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .shimmerEffect()
                     )
                     Box(
                         modifier = Modifier
                             .size(20.dp)
+                            .clip(RoundedCornerShape(6.dp))
                             .shimmerEffect()
                     )
                 }
@@ -98,6 +103,7 @@ fun CourseDetailSkeleton() {
                         modifier = Modifier
                             .fillMaxWidth(if (index == 2) 0.7f else 1f)
                             .height(16.dp)
+                            .clip(RoundedCornerShape(6.dp))
                             .shimmerEffect()
                     )
                     if (index < 2) Spacer(modifier = Modifier.height(4.dp))
@@ -123,12 +129,14 @@ fun CourseDetailSkeleton() {
                         modifier = Modifier
                             .width(24.dp)
                             .height(16.dp)
+                            .clip(RoundedCornerShape(6.dp))
                             .shimmerEffect()
                     )
                     Box(
                         modifier = Modifier
                             .width(60.dp)
                             .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp))
                             .shimmerEffect()
                     )
                 }

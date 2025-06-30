@@ -138,7 +138,7 @@ fun CourseDetailScreen(
 
     LaunchedEffect(Unit) {
         HomeEventBus.events.collectLatest {
-            if (it is HomeEvent.CreatedMaterial) {
+            if (it is HomeEvent.CreatedMaterial || it is HomeEvent.DeletedMaterial) {
                 courseDetailViewModel.fetchMaterialByClass(courseId)
             }
         }
