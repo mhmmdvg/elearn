@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,9 +63,11 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Plus
 import com.elearn.domain.model.CourseData
 import com.elearn.domain.model.CourseResponse
+import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.ButtonVariant
 import com.elearn.presentation.ui.components.CustomButton
 import com.elearn.presentation.ui.components.MaterialForm
+import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.screens.details.course.components.CourseDetailSkeleton
 import com.elearn.presentation.ui.screens.details.course.components.EmptyMaterialsState
 import com.elearn.presentation.ui.screens.details.course.components.EnhancedMaterialCard
@@ -90,7 +93,8 @@ fun CourseDetailScreen(
     modifier: Modifier = Modifier,
     courseId: String,
     navController: NavController,
-    courseDetailViewModel: CourseDetailViewModel = hiltViewModel()
+    courseDetailViewModel: CourseDetailViewModel = hiltViewModel(),
+    userViewModel: AuthViewModel = hiltViewModel()
 ) {
 
     /* State */
@@ -98,7 +102,9 @@ fun CourseDetailScreen(
     val materialByClassState by courseDetailViewModel.materialClassState.collectAsState()
     val courseNameUpdated by courseDetailViewModel.courseNameUpdated.collectAsState()
     val courseDescriptionUpdated by courseDetailViewModel.courseDescriptionUpdated.collectAsState()
+    val userInfo by userViewModel.userInfoState.collectAsState()
     var addMaterial by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     // Bottom sheet states
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -138,11 +144,18 @@ fun CourseDetailScreen(
 
     LaunchedEffect(Unit) {
         HomeEventBus.events.collectLatest {
-            if (it is HomeEvent.CreatedMaterial) {
+            if (it is HomeEvent.CreatedMaterial || it is HomeEvent.DeletedMaterial) {
                 courseDetailViewModel.fetchMaterialByClass(courseId)
             }
         }
     }
+
+    LaunchedEffect(courseDetailState) {
+        if (courseDetailState !is Resource.Loading) {
+            isRefreshing = false
+        }
+    }
+
 
     Column {
         ActionBar(
@@ -153,131 +166,152 @@ fun CourseDetailScreen(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            LazyColumn(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    isRefreshing = true
+                    courseDetailViewModel.fetchCourseDetail(courseId, isRefreshing)
+                    courseDetailViewModel.fetchMaterialByClass(courseId, isRefreshing)
+                }
             ) {
+                LazyColumn(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
 
-                item {
-                    when (courseDetailState) {
-                        is Resource.Loading -> {
-                            CourseDetailSkeleton()
-                        }
-
-                        is Resource.Success -> {
-                            CourseDetailCard(
-                                courseDetailState = courseDetailState,
-                                onEditTitle = {
-                                    editType = EditType.TITLE
-                                    showBottomSheet = true
-                                },
-                                onEditDescription = {
-                                    editType = EditType.DESCRIPTION
-                                    showBottomSheet = true
-                                }
-                            )
-                        }
-
-                        is Resource.Error -> {
-                            CourseDetailCard(
-                                courseDetailState = courseDetailState,
-                                onEditTitle = {
-                                    editType = EditType.TITLE
-                                    showBottomSheet = true
-                                },
-                                onEditDescription = {
-                                    editType = EditType.DESCRIPTION
-                                    showBottomSheet = true
-                                }
-                            )
-                        }
-
-                        else -> {
-                            CourseDetailSkeleton()
-                        }
-                    }
-                }
-
-                // Section Title
-                item {
-                    when (materialByClassState) {
-                        is Resource.Loading -> {
-                            Box(
-                                modifier = Modifier
-                                    .width(150.dp)
-                                    .height(24.dp)
-                                    .shimmerEffect()
-                            )
-                        }
-
-                        else -> {
-                            Text(
-                                text = "Course Materials",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Materials List
-                when (materialByClassState) {
-                    is Resource.Loading -> {
-                        items(3) { // Show 3 skeleton cards
-                            MaterialCardSkeleton()
-                        }
-                    }
-
-                    is Resource.Success -> {
-                        val materials = materialByClassState.data?.data?.materials
-                        if (materials.isNullOrEmpty()) {
-                            // Empty State
-                            item {
-                                EmptyMaterialsState()
+                    item {
+                        when (courseDetailState) {
+                            is Resource.Loading -> {
+                                CourseDetailSkeleton()
                             }
-                        } else {
-                            items(
-                                items = materials,
-                                key = { it.id }
-                            ) { item ->
-                                EnhancedMaterialCard(
-                                    material = item,
-                                    onClick = {
-                                        // Handle material click
+
+                            is Resource.Success -> {
+                                CourseDetailCard(
+                                    courseDetailState = courseDetailState,
+                                    role = userInfo.data?.data?.role?.name ?: "teacher",
+                                    onEditTitle = {
+                                        editType = EditType.TITLE
+                                        showBottomSheet = true
+                                    },
+                                    onEditDescription = {
+                                        editType = EditType.DESCRIPTION
+                                        showBottomSheet = true
                                     }
+                                )
+                            }
+
+                            is Resource.Error -> {
+                                CourseDetailCard(
+                                    courseDetailState = courseDetailState,
+                                    role = userInfo.data?.data?.role?.name ?: "teacher",
+                                    onEditTitle = {
+                                        editType = EditType.TITLE
+                                        showBottomSheet = true
+                                    },
+                                    onEditDescription = {
+                                        editType = EditType.DESCRIPTION
+                                        showBottomSheet = true
+                                    }
+                                )
+                            }
+
+                            else -> {
+                                CourseDetailSkeleton()
+                            }
+                        }
+                    }
+
+                    // Section Title
+                    item {
+                        when (materialByClassState) {
+                            is Resource.Loading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .width(150.dp)
+                                        .height(24.dp)
+                                        .shimmerEffect()
+                                )
+                            }
+
+                            else -> {
+                                Text(
+                                    text = "Course Materials",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(vertical = 8.dp)
                                 )
                             }
                         }
                     }
 
-                    is Resource.Error -> {
-                        item {
-                            EmptyMaterialsState(
-                                title = "Failed to Load Materials",
-                                description = "Something went wrong while loading course materials. Please try again.",
-                                isError = true
-                            )
+                    // Materials List
+                    when (materialByClassState) {
+                        is Resource.Loading -> {
+                            items(3) { // Show 3 skeleton cards
+                                MaterialCardSkeleton()
+                            }
+                        }
+
+                        is Resource.Success -> {
+                            val materials = materialByClassState.data?.data?.materials
+                            if (materials.isNullOrEmpty()) {
+                                // Empty State
+                                item {
+                                    EmptyMaterialsState()
+                                }
+                            } else {
+                                items(
+                                    items = materials,
+                                    key = { it.id }
+                                ) { item ->
+                                    EnhancedMaterialCard(
+                                        material = item,
+                                        onClick = {
+                                            navController.navigate(
+                                                Screen.MaterialDetail.createRoute(
+                                                    item.id
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        is Resource.Error -> {
+                            item {
+                                EmptyMaterialsState(
+                                    title = "Failed to Load Materials",
+                                    description = "Something went wrong while loading course materials. Please try again.",
+                                    isError = true
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            FloatingActionButton(
-                onClick = { addMaterial = true },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-                containerColor = PrimaryColor,
-                shape = CircleShape
-            ) {
-                Icon(
-                    imageVector = Lucide.Plus,
-                    contentDescription = "Add",
-                    tint = PrimaryForegroundColor
-                )
+            when (userInfo.data?.data?.role?.name) {
+                "teacher" -> {
+                    FloatingActionButton(
+                        onClick = { addMaterial = true },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                        containerColor = PrimaryColor,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Lucide.Plus,
+                            contentDescription = "Add",
+                            tint = PrimaryForegroundColor
+                        )
+                    }
+                }
+
+                else -> {}
             }
         }
     }
@@ -322,27 +356,16 @@ fun CourseDetailScreen(
             sheetState = bottomSheetState,
             containerColor = Color.White
         ) {
-            Column {
-                Text(
-                    text = "Material",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp, horizontal = 12.dp)
-                )
-
-                MaterialForm(
-                    isInClass = true,
-                    classId = courseDetailState.data?.data?.id,
-                    onSuccess = {
-                        scope.launch {
-                            bottomSheetState.hide()
-                            addMaterial = false
-                        }
+            MaterialForm(
+                isInClass = true,
+                classId = courseDetailState.data?.data?.id,
+                onSuccess = {
+                    scope.launch {
+                        bottomSheetState.hide()
+                        addMaterial = false
                     }
-                )
-            }
+                }
+            )
         }
     }
 }
@@ -352,7 +375,8 @@ fun CourseDetailScreen(
 private fun CourseDetailCard(
     courseDetailState: Resource<CourseResponse<CourseData>>,
     onEditTitle: () -> Unit,
-    onEditDescription: () -> Unit
+    onEditDescription: () -> Unit,
+    role: String = "teacher"
 ) {
     Box(
         modifier = Modifier
@@ -384,12 +408,14 @@ private fun CourseDetailCard(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = onEditTitle) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Title",
-                        tint = MutedForegroundColor
-                    )
+                if (role == "teacher") {
+                    IconButton(onClick = onEditTitle) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Title",
+                            tint = MutedForegroundColor
+                        )
+                    }
                 }
             }
 
@@ -406,13 +432,15 @@ private fun CourseDetailCard(
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = onEditDescription) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Description",
-                            tint = MutedForegroundColor,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    if (role == "teacher") {
+                        IconButton(onClick = onEditDescription) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Description",
+                                tint = MutedForegroundColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
 

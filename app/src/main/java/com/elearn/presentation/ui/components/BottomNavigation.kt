@@ -133,26 +133,13 @@ fun BottomNavigation(
                 materialFormViewModel.resetState()
             },
             sheetState = sheetState,
-            containerColor = Color.White
+            containerColor = PrimaryForegroundColor
         ) {
-            Column(
-                modifier = Modifier.height(screenHeight * 0.95f)
-            ) {
-                Text(
-                    text = "Material",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp, horizontal = 12.dp)
-                )
-
-                MaterialForm(
-                    onSuccess = {
-                        addMaterial = false
-                    }
-                )
-            }
+            MaterialForm(
+                onSuccess = {
+                    addMaterial = false
+                }
+            )
         }
     }
 
@@ -163,13 +150,9 @@ fun BottomNavigation(
                 courseViewModel.resetJoinClassState()
             },
             sheetState = sheetState,
-            containerColor = Color.White
+            containerColor = PrimaryForegroundColor
         ) {
-            Column(
-                modifier = Modifier.height(screenHeight * 0.2f)
-            ) {
-                JoinClassForm(isLoading = joinLoading)
-            }
+            JoinClassForm(isLoading = joinLoading)
         }
     }
 

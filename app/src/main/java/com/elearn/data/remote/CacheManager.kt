@@ -17,6 +17,6 @@ class CacheManager @Inject constructor(
     fun invalidateAllCaches() {
         courseRepository.invalidateCourseCache()
         userRepository.invalidateCaches()
-        materialRepository.invalidateMaterialCache()
+        materialRepository.invalidateAllMaterialCaches()
     }
 }

@@ -98,16 +98,17 @@ class MaterialRepository @Inject constructor(
     suspend fun putMaterial(
         materialId: String,
         context: Context,
-        fileUri: Uri,
+        fileUri: Uri? = null,
         name: String,
         description: String?,
     ): Result<CreateMaterialResponse> {
         return try {
-            val file = uriToFile(context, fileUri)
-            val mimeType = getMimeType(context, fileUri)
-
-            val fileRequestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
-            val filePart = MultipartBody.Part.createFormData("file", file.name, fileRequestBody)
+            val filePart: MultipartBody.Part? = fileUri?.let { uri ->
+                val file = uriToFile(context, uri)
+                val mimeType = getMimeType(context, uri)
+                val fileRequestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("file", file.name, fileRequestBody)
+            }
             val namePart = name.toRequestBody("text/plain".toMediaTypeOrNull())
             val descriptionPart = description?.toRequestBody("text/plain".toMediaTypeOrNull())
 
@@ -133,89 +134,109 @@ class MaterialRepository @Inject constructor(
         }
     }
 
-    fun getCacheMaterialList(classId: String? = null): MaterialResponse? {
-        return if (classId.isNullOrEmpty()) {
-            val cachedData = _allMaterialsCache
-            if (cachedData != null && isCacheValid(cachedData.timestamp)) {
-                cachedData.data
-            } else null
-        } else {
-            // Get filtered materials cache
-            val cachedData = _filteredMaterialsCache[classId]
-            if (cachedData != null && isCacheValid(cachedData.timestamp)) {
-                cachedData.data
-            } else null
+    suspend fun deleteMaterial(materialId: String): Result<HTTPResponse<MaterialData>> {
+        return try {
+            val res = materialApi.deleteMaterial(materialId)
+
+            if (res.isSuccessful) {
+                res.body()?.let {
+                    invalidateAllMaterialCaches()
+                    Result.success(it)
+                } ?: Result.failure(Exception("Empty Response Body"))
+            } else {
+                val errorBody = res.errorBody()?.string()
+                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+                Result.failure(Exception(errorResponse.error))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
         }
     }
 
-    fun invalidateMaterialCache(classId: String? = null) {
-        if (classId.isNullOrEmpty()) {
-            _allMaterialsCache = null
-        } else {
-            _filteredMaterialsCache.remove(classId)
-        }
-    }
 
-    fun invalidateAllMaterialCaches() {
-        _allMaterialsCache = null
-        _filteredMaterialsCache.clear()
-    }
-
-    private suspend fun fetchAllMaterials(): Result<MaterialResponse> {
+fun getCacheMaterialList(classId: String? = null): MaterialResponse? {
+    return if (classId.isNullOrEmpty()) {
         val cachedData = _allMaterialsCache
         if (cachedData != null && isCacheValid(cachedData.timestamp)) {
-            return Result.success(cachedData.data)
-        }
-
-        return try {
-            val res = materialApi.getMaterials(null)
-
-            if (res.isSuccessful) {
-                res.body()?.let { materialResponse ->
-                    _allMaterialsCache = CachedMaterialData(
-                        data = materialResponse,
-                        timestamp = System.currentTimeMillis()
-                    )
-                    Result.success(materialResponse)
-                } ?: Result.failure(Exception("Empty Response Body"))
-            } else {
-                val errorBody = res.errorBody()?.string()
-                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
-                Result.failure(Exception(errorResponse.error))
-            }
-        } catch (error: Exception) {
-            Result.failure(error)
-        }
-    }
-
-    private suspend fun fetchMaterialsByClassId(classId: String): Result<MaterialResponse> {
+            cachedData.data
+        } else null
+    } else {
+        // Get filtered materials cache
         val cachedData = _filteredMaterialsCache[classId]
         if (cachedData != null && isCacheValid(cachedData.timestamp)) {
-            return Result.success(cachedData.data)
-        }
+            cachedData.data
+        } else null
+    }
+}
 
-        return try {
-            val res = materialApi.getMaterials(classId)
+fun invalidateMaterialCache(classId: String? = null) {
+    if (classId.isNullOrEmpty()) {
+        _allMaterialsCache = null
+    } else {
+        _filteredMaterialsCache.remove(classId)
+    }
+}
 
-            if (res.isSuccessful) {
-                res.body()?.let { materialResponse ->
-                    _filteredMaterialsCache[classId] = CachedMaterialData(
-                        data = materialResponse,
-                        timestamp = System.currentTimeMillis()
-                    )
-                    Result.success(materialResponse)
-                } ?: Result.failure(Exception("Empty Response Body"))
-            } else {
-                val errorBody = res.errorBody()?.string()
-                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
-                Result.failure(Exception(errorResponse.error))
-            }
-        } catch (error: Exception) {
-            Result.failure(error)
-        }
+fun invalidateAllMaterialCaches() {
+    _allMaterialsCache = null
+    _filteredMaterialsCache.clear()
+}
+
+private suspend fun fetchAllMaterials(): Result<MaterialResponse> {
+    val cachedData = _allMaterialsCache
+    if (cachedData != null && isCacheValid(cachedData.timestamp)) {
+        return Result.success(cachedData.data)
     }
 
-    private fun isCacheValid(timestamp: Long): Boolean {
-        return System.currentTimeMillis() - timestamp < cacheExpirationTime
+    return try {
+        val res = materialApi.getMaterials(null)
+
+        if (res.isSuccessful) {
+            res.body()?.let { materialResponse ->
+                _allMaterialsCache = CachedMaterialData(
+                    data = materialResponse,
+                    timestamp = System.currentTimeMillis()
+                )
+                Result.success(materialResponse)
+            } ?: Result.failure(Exception("Empty Response Body"))
+        } else {
+            val errorBody = res.errorBody()?.string()
+            val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+            Result.failure(Exception(errorResponse.error))
+        }
+    } catch (error: Exception) {
+        Result.failure(error)
     }
+}
+
+private suspend fun fetchMaterialsByClassId(classId: String): Result<MaterialResponse> {
+    val cachedData = _filteredMaterialsCache[classId]
+    if (cachedData != null && isCacheValid(cachedData.timestamp)) {
+        return Result.success(cachedData.data)
+    }
+
+    return try {
+        val res = materialApi.getMaterials(classId)
+
+        if (res.isSuccessful) {
+            res.body()?.let { materialResponse ->
+                _filteredMaterialsCache[classId] = CachedMaterialData(
+                    data = materialResponse,
+                    timestamp = System.currentTimeMillis()
+                )
+                Result.success(materialResponse)
+            } ?: Result.failure(Exception("Empty Response Body"))
+        } else {
+            val errorBody = res.errorBody()?.string()
+            val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+            Result.failure(Exception(errorResponse.error))
+        }
+    } catch (error: Exception) {
+        Result.failure(error)
+    }
+}
+
+private fun isCacheValid(timestamp: Long): Boolean {
+    return System.currentTimeMillis() - timestamp < cacheExpirationTime
+}
 }
