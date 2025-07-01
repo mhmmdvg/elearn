@@ -12,6 +12,7 @@ data class CourseResponse<T>(
 data class CourseData(
     val id: String,
     val name: String,
+    val code: String,
     val description: String,
     val teacherId: String,
     val isActive: Boolean,

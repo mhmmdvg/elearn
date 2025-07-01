@@ -1,6 +1,5 @@
 package com.elearn.presentation.ui.screens.home.components
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,22 +11,33 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -44,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.School
 import com.composables.icons.lucide.Trash2
+import com.composables.icons.lucide.TriangleAlert
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
@@ -51,6 +63,7 @@ import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import kotlin.math.roundToInt
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClassCard(
     className: String,
@@ -64,6 +77,10 @@ fun ClassCard(
     val density = LocalDensity.current
     var offsetX by remember { mutableFloatStateOf(0f) }
     val deleteThreshold = with(density) { -120.dp.toPx() }
+
+    // Bottom sheet state
+    var showDeleteBottomSheet by remember { mutableStateOf(false) }
+    val bottomSheetState = rememberModalBottomSheetState()
 
     val isTeacher = userInfoState.data?.data?.role?.name == "teacher"
 
@@ -81,6 +98,7 @@ fun ClassCard(
         modifier = Modifier
             .fillMaxWidth()
     ) {
+        // Background delete area
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -121,9 +139,12 @@ fun ClassCard(
                         }
                     }
 
+                    // Delete button - now shows bottom sheet
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { onDelete() }
+                        modifier = Modifier.clickable {
+                            showDeleteBottomSheet = true
+                        }
                     ) {
                         Icon(
                             imageVector = Lucide.Trash2,
@@ -142,6 +163,7 @@ fun ClassCard(
             }
         }
 
+        // Main card content
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -175,13 +197,12 @@ fun ClassCard(
                     if (isTeacher) Modifier.draggable(
                         state = draggableState,
                         orientation = Orientation.Horizontal,
-                        onDragStopped = { velocity ->
-                            if (offsetX <= deleteThreshold * 0.7f) {
-                                onDelete()
-                            } else if (offsetX < deleteThreshold * 0.3f) {
-                                offsetX = deleteThreshold
+                        onDragStopped = { _ ->
+                            // Snap to delete threshold or reset to 0
+                            offsetX = if (offsetX <= deleteThreshold * 0.5f) {
+                                deleteThreshold
                             } else {
-                                offsetX = 0f
+                                0f
                             }
                         }
                     ) else Modifier
@@ -226,5 +247,146 @@ fun ClassCard(
                 }
             }
         }
+    }
+
+    // Delete confirmation bottom sheet
+    if (showDeleteBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showDeleteBottomSheet = false },
+            sheetState = bottomSheetState
+        ) {
+            DeleteConfirmationContent(
+                className = className,
+                onConfirmDelete = {
+                    onDelete()
+                    showDeleteBottomSheet = false
+                },
+                onCancel = {
+                    showDeleteBottomSheet = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun DeleteConfirmationContent(
+    className: String,
+    onConfirmDelete: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp)
+            .background(
+                color = PrimaryForegroundColor
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        // Warning Icon
+        Surface(
+            shape = CircleShape,
+            color = Color.Red.copy(alpha = 0.1f),
+            modifier = Modifier.size(80.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Lucide.TriangleAlert,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = Color.Red
+                )
+            }
+        }
+
+        // Title and Description
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Delete Class",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Are you sure you want to delete \"$className\"?",
+                fontSize = 16.sp,
+                color = PrimaryColor,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Text(
+                text = "This action cannot be undone.",
+                fontSize = 14.sp,
+                color = Color.Red,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Action Buttons
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Delete Button
+            Button(
+                onClick = onConfirmDelete,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Lucide.Trash2,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "Yes, Delete",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // Cancel Button
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.Black
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Cancel",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

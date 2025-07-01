@@ -357,14 +357,12 @@ fun MaterialForm(
                 fontWeight = FontWeight.SemiBold
             )
 
-            if (formState.selectedFileName.isNotBlank()) {
-                Text(
-                    "Uploaded File: ${formState.selectedFileName}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = PrimaryColor,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
+            Text(
+                text = "Uploaded File: " + formState.selectedFileName.ifBlank { "No file selected" },
+                style = MaterialTheme.typography.bodySmall,
+                color = PrimaryColor,
+                modifier = Modifier.padding(start = 16.dp)
+            )
 
             CustomButton(
                 onClick = {
@@ -400,9 +398,6 @@ fun MaterialForm(
                 if (!isFormValid.value) return@CustomButton
 
                 if (isEdit) {
-
-                    Log.d("masuk", "masuk")
-
                     materialViewModel.putMaterial(
                         materialId = materialId ?: "",
                         context = context,

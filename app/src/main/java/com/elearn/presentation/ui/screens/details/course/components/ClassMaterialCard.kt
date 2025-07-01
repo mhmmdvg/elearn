@@ -1,5 +1,11 @@
 package com.elearn.presentation.ui.screens.details.course.components
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,35 +24,104 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import com.composables.icons.lucide.Download
+import com.composables.icons.lucide.ExternalLink
 import com.composables.icons.lucide.File
 import com.composables.icons.lucide.FileText
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
 import com.elearn.domain.model.MaterialData
 import com.elearn.presentation.ui.components.CacheImage
+import com.elearn.presentation.ui.components.ImageViewer
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.utils.ImageDownloadHandler
+import com.elearn.utils.OpenFileHandler.isWebUrl
+import com.elearn.utils.OpenFileHandler.openFile
 import com.elearn.utils.formatDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 @Composable
 fun EnhancedMaterialCard(
     material: MaterialData,
     onClick: () -> Unit
 ) {
+    var showImageViewer by remember { mutableStateOf(false) }
+    var downloadedImageFile by remember { mutableStateOf<File?>(null) }
+    val context = LocalContext.current
+
+    if (getFileType(material.fileUrl) == FileType.IMAGE) {
+        ImageViewer(
+            imageUrl = material.fileUrl,
+            fileName = material.name,
+            isVisible = showImageViewer,
+            onDismiss = { showImageViewer = false },
+            onDownload = {
+                // Handle image download
+                ImageDownloadHandler.downloadImage(
+                    context = context,
+                    imageUrl = material.fileUrl,
+                    fileName = material.fileName,
+                    onDownloadStart = {
+                        // Optional: Show loading indicator
+                    },
+                    onDownloadComplete = { file ->
+                        downloadedImageFile = file
+
+                    },
+                    onDownloadError = { errorMessage ->
+                    }
+                )
+            },
+            onShare = {
+                // Handle image sharing
+                downloadedImageFile?.let { file ->
+                    // If image is already downloaded, share it directly
+                    ImageDownloadHandler.shareImage(context, file)
+                } ?: run {
+                    // If not downloaded yet, download first then share
+                    ImageDownloadHandler.downloadImage(
+                        context = context,
+                        imageUrl = material.fileUrl,
+                        fileName = material.fileName,
+                        onDownloadComplete = { file ->
+                            file?.let {
+                                downloadedImageFile = it
+                                ImageDownloadHandler.shareImage(context, it)
+                            }
+                        }
+                    )
+                }
+            }
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,7 +244,14 @@ fun EnhancedMaterialCard(
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.Blue.copy(alpha = 0.1f)
+                    color = Color.Blue.copy(alpha = 0.1f),
+                    onClick = {
+                        if (getFileType(material.fileUrl) == FileType.IMAGE) {
+                            showImageViewer = true
+                        } else {
+                            openFile(context, material.fileUrl, material.name)
+                        }
+                    },
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -177,7 +259,7 @@ fun EnhancedMaterialCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = Lucide.Download,
+                            imageVector = if (isWebUrl(material.fileUrl)) Lucide.ExternalLink else Lucide.Download,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                             tint = Color.Blue

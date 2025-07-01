@@ -3,6 +3,7 @@ package com.elearn.presentation.ui.screens.details.course
 import ActionBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +49,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -59,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.composables.icons.lucide.Copy
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Plus
 import com.elearn.domain.model.CourseData
@@ -79,6 +83,7 @@ import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 import com.elearn.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -93,6 +98,7 @@ fun CourseDetailScreen(
     modifier: Modifier = Modifier,
     courseId: String,
     navController: NavController,
+    materialFormViewModel: MaterialFormViewModel = hiltViewModel(),
     courseDetailViewModel: CourseDetailViewModel = hiltViewModel(),
     userViewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -352,7 +358,10 @@ fun CourseDetailScreen(
 
     if (addMaterial) {
         ModalBottomSheet(
-            onDismissRequest = { addMaterial = false },
+            onDismissRequest = {
+                addMaterial = false
+                materialFormViewModel.resetState()
+            },
             sheetState = bottomSheetState,
             containerColor = Color.White
         ) {
@@ -363,6 +372,7 @@ fun CourseDetailScreen(
                     scope.launch {
                         bottomSheetState.hide()
                         addMaterial = false
+                        materialFormViewModel.resetState()
                     }
                 }
             )
@@ -378,6 +388,7 @@ private fun CourseDetailCard(
     onEditDescription: () -> Unit,
     role: String = "teacher"
 ) {
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -395,6 +406,12 @@ private fun CourseDetailCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
+            courseDetailState.data?.data?.code?.let { code ->
+                EnhancedCourseCode(
+                    courseCode = code
+                )
+            }
             // Course Title
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -691,5 +708,70 @@ private fun CourseStatItem(
             fontSize = 12.sp,
             color = MutedForegroundColor
         )
+    }
+}
+
+@Composable
+private fun EnhancedCourseCode(
+    courseCode: String,
+    modifier: Modifier = Modifier
+) {
+    val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable {
+                clipboardManager.setText(AnnotatedString(courseCode))
+                // You can add a snackbar or toast here to show copy confirmation
+            }
+            .background(
+                color = PrimaryColor.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(12.dp)
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Class Code",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = PrimaryColor,
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = courseCode,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryColor,
+                    letterSpacing = 1.sp
+                )
+            }
+
+            Surface(
+                shape = CircleShape,
+                color = PrimaryColor.copy(alpha = 0.2f),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Lucide.Copy,
+                        contentDescription = "Copy Code",
+                        modifier = Modifier.size(18.dp),
+                        tint = PrimaryColor
+                    )
+                }
+            }
+        }
     }
 }
