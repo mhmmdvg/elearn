@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.composables.icons.lucide.ClipboardCopy
 import com.composables.icons.lucide.Copy
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Plus
@@ -84,6 +83,7 @@ import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 import com.elearn.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -98,6 +98,7 @@ fun CourseDetailScreen(
     modifier: Modifier = Modifier,
     courseId: String,
     navController: NavController,
+    materialFormViewModel: MaterialFormViewModel = hiltViewModel(),
     courseDetailViewModel: CourseDetailViewModel = hiltViewModel(),
     userViewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -357,7 +358,10 @@ fun CourseDetailScreen(
 
     if (addMaterial) {
         ModalBottomSheet(
-            onDismissRequest = { addMaterial = false },
+            onDismissRequest = {
+                addMaterial = false
+                materialFormViewModel.resetState()
+            },
             sheetState = bottomSheetState,
             containerColor = Color.White
         ) {
@@ -368,6 +372,7 @@ fun CourseDetailScreen(
                     scope.launch {
                         bottomSheetState.hide()
                         addMaterial = false
+                        materialFormViewModel.resetState()
                     }
                 }
             )
