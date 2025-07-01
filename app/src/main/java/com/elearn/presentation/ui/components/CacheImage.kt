@@ -43,7 +43,9 @@ fun CacheImage(
     description: String?,
     contentScale: ContentScale = ContentScale.Crop,
     maxWidth: Dp? = null,
-    maxHeight: Dp? = null
+    maxHeight: Dp? = null,
+    onLoadingComplete: (() -> Unit)? = null,
+    onError: (() -> Unit)? = null
 ) {
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -55,6 +57,7 @@ fun CacheImage(
         if (imageUrl.isBlank()) {
             isLoading = false
             hasError = true
+            onError?.invoke()
             return@LaunchedEffect
         }
 
@@ -67,6 +70,7 @@ fun CacheImage(
             if (cachedBitmap != null && !cachedBitmap.isRecycled) {
                 bitmap = cachedBitmap
                 isLoading = false
+                onLoadingComplete?.invoke()
                 return@LaunchedEffect
             }
 
@@ -83,12 +87,15 @@ fun CacheImage(
                 // Cache in memory
                 inMemoryCache[imageUrl] = loadedBitmap
                 bitmap = loadedBitmap
+                onLoadingComplete?.invoke()
             } else {
                 hasError = true
+                onError?.invoke()
             }
         } catch (e: Exception) {
             e.printStackTrace()
             hasError = true
+            onError?.invoke()
         } finally {
             isLoading = false
         }
@@ -187,37 +194,36 @@ private suspend fun loadImageFromUrl(
 ): Bitmap? {
     return withContext(Dispatchers.IO) {
         try {
-            val connection = URL(url).openConnection().apply {
-                connectTimeout = 10000
-                readTimeout = 10000
-                setRequestProperty("User-Agent", "Android App")
-            }
+            if (targetWidth != null && targetHeight != null) {
+                // Download the image data first
+                val connection = URL(url).openConnection().apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    setRequestProperty("User-Agent", "Android App")
+                }
 
-            connection.connect()
+                val imageData = connection.getInputStream().use { it.readBytes() }
 
-            connection.getInputStream().use { inputStream ->
-                if (targetWidth != null && targetHeight != null) {
-                    // Decode with scaling
-                    val options = BitmapFactory.Options().apply {
-                        inJustDecodeBounds = true
-                    }
+                // First decode bounds only
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeByteArray(imageData, 0, imageData.size, options)
 
-                    // Read bounds
-                    val boundStream = connection.getInputStream()
-                    BitmapFactory.decodeStream(boundStream, null, options)
-                    boundStream.close()
+                // Calculate sample size and decode
+                options.inSampleSize = calculateInSampleSize(options, targetWidth, targetHeight)
+                options.inJustDecodeBounds = false
 
-                    // Calculate sample size and decode
-                    options.inSampleSize = calculateInSampleSize(options, targetWidth, targetHeight)
-                    options.inJustDecodeBounds = false
+                BitmapFactory.decodeByteArray(imageData, 0, imageData.size, options)
+            } else {
+                // Simple decode without scaling
+                val connection = URL(url).openConnection().apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    setRequestProperty("User-Agent", "Android App")
+                }
 
-                    val finalStream = URL(url).openConnection().apply {
-                        connectTimeout = 10000
-                        readTimeout = 10000
-                    }.getInputStream()
-
-                    BitmapFactory.decodeStream(finalStream, null, options)
-                } else {
+                connection.getInputStream().use { inputStream ->
                     BitmapFactory.decodeStream(inputStream)
                 }
             }

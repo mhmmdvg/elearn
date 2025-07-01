@@ -2,7 +2,9 @@ package com.elearn.presentation.ui.screens.details.course.components
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +24,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,9 +50,13 @@ import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
 import com.elearn.domain.model.MaterialData
 import com.elearn.presentation.ui.components.CacheImage
+import com.elearn.presentation.ui.components.ImageViewer
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.utils.ImageDownloadHandler
+import com.elearn.utils.OpenFileHandler.isWebUrl
+import com.elearn.utils.OpenFileHandler.openFile
 import com.elearn.utils.formatDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +64,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
 import java.net.URL
 
 @Composable
@@ -61,7 +72,55 @@ fun EnhancedMaterialCard(
     material: MaterialData,
     onClick: () -> Unit
 ) {
+    var showImageViewer by remember { mutableStateOf(false) }
+    var downloadedImageFile by remember { mutableStateOf<File?>(null) }
     val context = LocalContext.current
+
+    if (getFileType(material.fileUrl) == FileType.IMAGE) {
+        ImageViewer(
+            imageUrl = material.fileUrl,
+            fileName = material.name,
+            isVisible = showImageViewer,
+            onDismiss = { showImageViewer = false },
+            onDownload = {
+                // Handle image download
+                ImageDownloadHandler.downloadImage(
+                    context = context,
+                    imageUrl = material.fileUrl,
+                    fileName = material.fileName,
+                    onDownloadStart = {
+                        // Optional: Show loading indicator
+                    },
+                    onDownloadComplete = { file ->
+                        downloadedImageFile = file
+
+                    },
+                    onDownloadError = { errorMessage ->
+                    }
+                )
+            },
+            onShare = {
+                // Handle image sharing
+                downloadedImageFile?.let { file ->
+                    // If image is already downloaded, share it directly
+                    ImageDownloadHandler.shareImage(context, file)
+                } ?: run {
+                    // If not downloaded yet, download first then share
+                    ImageDownloadHandler.downloadImage(
+                        context = context,
+                        imageUrl = material.fileUrl,
+                        fileName = material.fileName,
+                        onDownloadComplete = { file ->
+                            file?.let {
+                                downloadedImageFile = it
+                                ImageDownloadHandler.shareImage(context, it)
+                            }
+                        }
+                    )
+                }
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -187,7 +246,11 @@ fun EnhancedMaterialCard(
                     shape = RoundedCornerShape(12.dp),
                     color = Color.Blue.copy(alpha = 0.1f),
                     onClick = {
-                        openFile(context, material.fileUrl, material.name)
+                        if (getFileType(material.fileUrl) == FileType.IMAGE) {
+                            showImageViewer = true
+                        } else {
+                            openFile(context, material.fileUrl, material.name)
+                        }
                     },
                 ) {
                     Row(
@@ -432,176 +495,4 @@ fun getFileIconColor(fileUrl: String): Color {
 fun getFileTypeText(fileUrl: String): String {
     val extension = fileUrl.substringAfterLast('.', "").uppercase()
     return if (extension.isNotEmpty()) extension else "FILE"
-}
-
-// File opening functionality
-fun isWebUrl(url: String): Boolean {
-    return url.startsWith("http://") || url.startsWith("https://")
-}
-
-fun openFile(context: Context, fileUrl: String, fileName: String) {
-    try {
-        if (isWebUrl(fileUrl)) {
-            // For web URLs, open directly in browser or appropriate app
-            openWebFile(context, fileUrl)
-        } else {
-            // For local files, open with appropriate app
-            openLocalFile(context, fileUrl, fileName)
-        }
-    } catch (e: Exception) {
-        Toast.makeText(context, "Unable to open file: ${e.message}", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun openWebFile(context: Context, fileUrl: String) {
-    val fileType = getFileType(fileUrl)
-
-    when (fileType) {
-        FileType.IMAGE -> {
-            // Open image in a custom image viewer or gallery app
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse(fileUrl)
-                type = "image/*"
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-            } else {
-                // Fallback to browser
-                openInBrowser(context, fileUrl)
-            }
-        }
-
-        FileType.PDF -> {
-            // Try to open PDF with a PDF viewer
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse(fileUrl)
-                type = "application/pdf"
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-            } else {
-                // Fallback: download and open or open in browser
-                downloadAndOpenFile(context, fileUrl, "document.pdf")
-            }
-        }
-
-        FileType.DOCUMENT -> {
-            // For documents, try to open with appropriate app or download first
-            downloadAndOpenFile(context, fileUrl, "document.${getFileExtension(fileUrl)}")
-        }
-
-        FileType.UNKNOWN -> {
-            // Open in browser as fallback
-            openInBrowser(context, fileUrl)
-        }
-    }
-}
-
-private fun openLocalFile(context: Context, filePath: String, fileName: String) {
-    val file = File(filePath)
-    if (!file.exists()) {
-        Toast.makeText(context, "File not found", Toast.LENGTH_SHORT).show()
-        return
-    }
-
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider", // Make sure you have FileProvider configured
-        file
-    )
-
-    val mimeType = getMimeType(filePath)
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, mimeType)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-    }
-
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
-        Toast.makeText(context, "No app available to open this file type", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun openInBrowser(context: Context, url: String) {
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-    }
-
-    if (intent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(intent)
-    } else {
-        Toast.makeText(context, "No browser available", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun downloadAndOpenFile(context: Context, fileUrl: String, fileName: String) {
-    Toast.makeText(context, "Downloading file...", Toast.LENGTH_SHORT).show()
-
-    CoroutineScope(Dispatchers.IO).launch {
-        try {
-            val file = downloadFile(context, fileUrl, fileName)
-
-            withContext(Dispatchers.Main) {
-                if (file != null) {
-                    openLocalFile(context, file.absolutePath, fileName)
-                } else {
-                    Toast.makeText(context, "Failed to download file", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-}
-
-private suspend fun downloadFile(context: Context, fileUrl: String, fileName: String): File? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val url = URL(fileUrl)
-            val connection = url.openConnection()
-            connection.connect()
-
-            val file = File(context.cacheDir, fileName)
-            val outputStream = FileOutputStream(file)
-            val inputStream = connection.getInputStream()
-
-            inputStream.use { input ->
-                outputStream.use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            file
-        } catch (e: Exception) {
-            null
-        }
-    }
-}
-
-private fun getMimeType(filePath: String): String {
-    val extension = filePath.substringAfterLast('.', "").lowercase()
-    return when (extension) {
-        "pdf" -> "application/pdf"
-        "doc" -> "application/msword"
-        "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        "txt" -> "text/plain"
-        "rtf" -> "application/rtf"
-        "jpg", "jpeg" -> "image/jpeg"
-        "png" -> "image/png"
-        "gif" -> "image/gif"
-        "bmp" -> "image/bmp"
-        "webp" -> "image/webp"
-        else -> "*/*"
-    }
-}
-
-private fun getFileExtension(fileUrl: String): String {
-    return fileUrl.substringAfterLast('.', "")
 }

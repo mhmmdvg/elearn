@@ -33,6 +33,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +74,9 @@ import com.elearn.presentation.viewmodel.course.ClassFormViewModel
 import com.elearn.presentation.viewmodel.course.ClassListViewModel
 import com.elearn.presentation.viewmodel.material.MaterialViewModel
 import com.elearn.utils.Resource
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 private val tabs = listOf(
     TabList(title = "Materials", icon = Lucide.Newspaper),
@@ -95,16 +99,18 @@ fun HomeScreen(
     val state = viewModel.state.value
     var addClass by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
-    var joinClass by remember { mutableStateOf(false) } // Add this state
+    var joinClass by remember { mutableStateOf(false) }
     var resetJoinForm by remember { mutableStateOf(false) }
 
     /* Data */
     val classes by courseViewModel.classes.collectAsState()
     val materials by materialViewModel.materials.collectAsState()
     val userInfo by authViewModel.userInfoState.collectAsState()
+    val joinClassState by courseViewModel.joinClass.collectAsState()
+
+    val scope = rememberCoroutineScope()
 
     val isTeacher = userInfo.data?.data?.role?.name == "teacher"
-    val isStudent = userInfo.data?.data?.role?.name == "student"
 
     val filteredMaterials = remember(state.searchQuery, materials) {
         derivedStateOf {
@@ -131,7 +137,6 @@ fun HomeScreen(
         }
     }.value
 
-    // Handle refresh completion
     LaunchedEffect(classes, materials) {
         if (classes !is Resource.Loading && materials !is Resource.Loading) {
             isRefreshing = false
@@ -140,6 +145,23 @@ fun HomeScreen(
 
     LaunchedEffect(state.selectedTabIndex) {
         viewModel.onQueryChanged("")
+    }
+
+    LaunchedEffect(Unit) {
+        HomeEventBus.events.collectLatest {
+           when (it) {
+               is HomeEvent.JoinedClass -> {
+                   joinClass = false
+                   courseViewModel.resetJoinClassState()
+
+                   val courseId = joinClassState.data?.data?.course?.id
+                   if (courseId != null) {
+                       navController.navigate(Screen.CourseDetail.createRoute(courseId))
+                   }
+               }
+               else -> {}
+           }
+        }
     }
 
     if (addClass) {
@@ -180,12 +202,13 @@ fun HomeScreen(
         ) {
             JoinClassForm(
                 viewModel = courseViewModel,
-                isLoading = false,
+                isLoading = joinClassState is Resource.Loading,
                 onResetState = {
-                    joinClass = false
-                    courseViewModel.resetJoinClassState()
-                }
-            )
+                    scope.launch {
+                        joinClass = false
+                        courseViewModel.resetJoinClassState()
+                    }
+                })
         }
     }
 

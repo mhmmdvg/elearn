@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.composables.icons.lucide.Download
+import com.composables.icons.lucide.ExternalLink
 import com.composables.icons.lucide.FileText
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
@@ -63,8 +65,11 @@ import com.elearn.domain.model.HTTPResponse
 import com.elearn.domain.model.MaterialData
 import com.elearn.domain.model.UserResponse
 import com.elearn.presentation.ui.components.CacheImage
+import com.elearn.presentation.ui.components.ImageViewer
 import com.elearn.presentation.ui.components.MaterialForm
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
+import com.elearn.presentation.ui.screens.details.course.components.FileType
+import com.elearn.presentation.ui.screens.details.course.components.getFileType
 import com.elearn.presentation.ui.screens.details.material.components.MaterialDetailSkeleton
 import com.elearn.presentation.ui.screens.home.HomeEvent
 import com.elearn.presentation.ui.screens.home.HomeEventBus
@@ -73,10 +78,14 @@ import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 import com.elearn.presentation.viewmodel.material.MaterialViewModel
+import com.elearn.utils.ImageDownloadHandler
+import com.elearn.utils.OpenFileHandler.isWebUrl
+import com.elearn.utils.OpenFileHandler.openFile
 import com.elearn.utils.Resource
 import com.elearn.utils.formatDate
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -375,7 +384,58 @@ private fun MaterialDetailContent(
     onDeleteClick: () -> Unit = {},
     userInfo: UserResponse? = null
 ) {
+    var showImageViewer by remember { mutableStateOf(false) }
+    var downloadedImageFile by remember { mutableStateOf<File?>(null) }
     val isImage = materialDetailState.data?.data?.fileType == "IMAGE"
+    val context = LocalContext.current
+
+    materialDetailState.data?.data?.let { material ->
+        if (getFileType(material.fileUrl) == FileType.IMAGE) {
+            ImageViewer(
+                imageUrl = material.fileUrl,
+                fileName = material.name,
+                isVisible = showImageViewer,
+                onDismiss = { showImageViewer = false },
+                onDownload = {
+                    // Handle image download
+                    ImageDownloadHandler.downloadImage(
+                        context = context,
+                        imageUrl = material.fileUrl,
+                        fileName = material.fileName,
+                        onDownloadStart = {
+                            // Optional: Show loading indicator
+                        },
+                        onDownloadComplete = { file ->
+                            downloadedImageFile = file
+
+                        },
+                        onDownloadError = { errorMessage ->
+                        }
+                    )
+                },
+                onShare = {
+                    // Handle image sharing
+                    downloadedImageFile?.let { file ->
+                        // If image is already downloaded, share it directly
+                        ImageDownloadHandler.shareImage(context, file)
+                    } ?: run {
+                        // If not downloaded yet, download first then share
+                        ImageDownloadHandler.downloadImage(
+                            context = context,
+                            imageUrl = material.fileUrl,
+                            fileName = material.fileName,
+                            onDownloadComplete = { file ->
+                                file?.let {
+                                    downloadedImageFile = it
+                                    ImageDownloadHandler.shareImage(context, it)
+                                }
+                            }
+                        )
+                    }
+                }
+            )
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -523,7 +583,16 @@ private fun MaterialDetailContent(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color.Blue.copy(alpha = 0.1f),
-                        modifier = Modifier.clickable { /* TODO: Handle download */ }
+                        modifier = Modifier.clickable {
+                            materialDetailState.data?.data?.let {
+                                if (getFileType(it.fileUrl) == FileType.IMAGE) {
+                                    showImageViewer = true
+                                    return@clickable
+                                }
+
+                                openFile(context, it.fileUrl, it.name)
+                            }
+                        }
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -531,13 +600,13 @@ private fun MaterialDetailContent(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Lucide.Download,
+                                imageVector = if (isWebUrl(materialDetailState.data?.data?.fileUrl ?: "")) Lucide.ExternalLink else Lucide.Download,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
                                 tint = Color.Blue
                             )
                             Text(
-                                text = "Download",
+                                text = "Open",
                                 fontSize = 12.sp,
                                 color = Color.Blue,
                                 fontWeight = FontWeight.Medium

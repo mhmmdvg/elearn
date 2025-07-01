@@ -57,7 +57,6 @@ fun JoinClassForm(
         errorMessage = ""
     }
 
-    // Validate code on change
     LaunchedEffect(code) {
         errorMessage = when {
             code.isEmpty() -> ""
