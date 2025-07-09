@@ -420,6 +420,8 @@ fun MaterialForm(
             enabled = isFormValid.value && (createdMaterial !is Resource.Loading && editedMaterial !is Resource.Loading),
             text = "Save"
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

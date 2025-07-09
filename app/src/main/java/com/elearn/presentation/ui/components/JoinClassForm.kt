@@ -2,6 +2,7 @@ package com.elearn.presentation.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -136,5 +137,7 @@ fun JoinClassForm(
             },
             text = "Join"
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

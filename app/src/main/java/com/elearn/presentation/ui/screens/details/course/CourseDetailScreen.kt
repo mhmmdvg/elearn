@@ -77,6 +77,8 @@ import com.elearn.presentation.ui.screens.details.course.components.CourseDetail
 import com.elearn.presentation.ui.screens.details.course.components.EmptyMaterialsState
 import com.elearn.presentation.ui.screens.details.course.components.EnhancedMaterialCard
 import com.elearn.presentation.ui.screens.details.course.components.MaterialCardSkeleton
+import com.elearn.presentation.ui.screens.details.course.components.StudentFAB
+import com.elearn.presentation.ui.screens.details.course.components.TeacherFAB
 import com.elearn.presentation.ui.screens.home.HomeEvent
 import com.elearn.presentation.ui.screens.home.HomeEventBus
 import com.elearn.presentation.ui.theme.MutedColor
@@ -301,22 +303,34 @@ fun CourseDetailScreen(
 
             when (userInfo.data?.data?.role?.name) {
                 "teacher" -> {
-                    FloatingActionButton(
-                        onClick = { addMaterial = true },
+//                    FloatingActionButton(
+//                        onClick = { addMaterial = true },
+//                        modifier = Modifier
+//                            .align(Alignment.BottomEnd)
+//                            .padding(16.dp),
+//                        containerColor = PrimaryColor,
+//                        shape = CircleShape
+//                    ) {
+//                        Icon(
+//                            imageVector = Lucide.Plus,
+//                            contentDescription = "Add",
+//                            tint = PrimaryForegroundColor
+//                        )
+//                    }
+
+                    TeacherFAB(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(16.dp),
-                        containerColor = PrimaryColor,
-                        shape = CircleShape
-                    ) {
-                        Icon(
-                            imageVector = Lucide.Plus,
-                            contentDescription = "Add",
-                            tint = PrimaryForegroundColor
-                        )
-                    }
+                        onCreateMaterial = {},
+                        onCreateAttendance = {}
+                    )
                 }
-
+                "student" -> {
+                    StudentFAB(
+                        onCheckIn = {}
+                    )
+                }
                 else -> {}
             }
         }
