@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.UserCheck
+import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 
@@ -20,7 +21,7 @@ fun StudentFAB(
     FloatingActionButton(
         onClick = onCheckIn,
         modifier = modifier,
-        containerColor = if (isCheckedIn) Color(0xFF4CAF50) else PrimaryColor,
+        containerColor = if (isCheckedIn) Color(0xFF4CAF50) else AccentColor,
         shape = CircleShape
     ) {
         Icon(

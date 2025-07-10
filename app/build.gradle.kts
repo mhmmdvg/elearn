@@ -52,6 +52,8 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.logging.interceptor)
     implementation(libs.navigation.compose)
+    implementation(libs.androidx.core.splashscreen)
+
 
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)

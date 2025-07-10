@@ -5,6 +5,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 sealed interface CourseDetailEvent {
     data object UpdateCourse : CourseDetailEvent
+    data object CreateAttendanceSession : CourseDetailEvent
+    data object CreateCheckinAttendance : CourseDetailEvent
+    data object CreateCheckoutAttendance : CourseDetailEvent
 }
 
 object CourseDetailEventBus {

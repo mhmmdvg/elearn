@@ -2,6 +2,7 @@ package com.elearn.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.elearn.data.remote.api.AttendanceApi
 import com.elearn.data.remote.api.AuthApi
 import com.elearn.data.remote.api.CourseApi
 import com.elearn.data.remote.api.MaterialApi
@@ -77,6 +78,12 @@ object AppModule {
     @Singleton
     fun provideMaterialApi(retrofit: Retrofit): MaterialApi {
         return retrofit.create(MaterialApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAttendanceApi(retrofit: Retrofit): AttendanceApi {
+        return retrofit.create(AttendanceApi::class.java)
     }
 
 }

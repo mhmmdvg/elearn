@@ -34,6 +34,7 @@ import com.composables.icons.lucide.FileText
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.UserCheck
+import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 
@@ -151,6 +152,7 @@ fun TeacherFAB(
 
     MultiOptionFAB(
         modifier = modifier,
-        options = options
+        options = options,
+        containerColor = AccentColor,
     )
 }

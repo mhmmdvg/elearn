@@ -36,6 +36,7 @@ import com.elearn.presentation.ui.screens.details.material.MaterialDetailScreen
 import com.elearn.presentation.ui.screens.editprofile.EditProfileScreen
 import com.elearn.presentation.ui.screens.home.HomeScreen
 import com.elearn.presentation.ui.screens.profile.ProfileScreen
+import com.elearn.presentation.ui.screens.splash.SplashScreen
 import com.elearn.presentation.ui.theme.ElearnTheme
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import dagger.hilt.android.AndroidEntryPoint
@@ -51,16 +52,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ElearnTheme {
-                var startDestination by remember { mutableStateOf(Screen.Login.route) }
+                var startDestination by remember { mutableStateOf<String?>(null) }
+                var isLoading by remember { mutableStateOf(true) }
 
-                LaunchedEffect(Unit) {
-                    val token = tokenManager.getToken()
+                if (isLoading) {
+                    SplashScreen {
+                        isLoading = false
+                    }
 
-                    startDestination =
-                        if (!token.isNullOrEmpty()) Screen.Home.route else Screen.Login.route
+                    LaunchedEffect(Unit) {
+                        val token = tokenManager.getToken()
+
+                        startDestination =
+                            if (!token.isNullOrEmpty()) Screen.Home.route else Screen.Login.route
+                    }
+                } else {
+                    startDestination?.let { destination ->
+                        NavGraph(startDestination = destination)
+                    }
                 }
-
-                NavGraph(startDestination = startDestination)
             }
         }
     }

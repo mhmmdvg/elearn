@@ -1,6 +1,7 @@
 package com.elearn.presentation.ui.screens.details.course
 
 import ActionBar
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,16 +64,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.composables.icons.lucide.Copy
 import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Plus
+import com.composables.icons.lucide.Newspaper
+import com.composables.icons.lucide.UserCheck
 import com.elearn.domain.model.CourseData
 import com.elearn.domain.model.CourseResponse
 import com.elearn.presentation.Screen
 import com.elearn.presentation.ui.components.ButtonVariant
 import com.elearn.presentation.ui.components.CustomButton
 import com.elearn.presentation.ui.components.MaterialForm
-import com.elearn.presentation.ui.components.shimmerEffect
+import com.elearn.presentation.ui.model.TabList
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
+import com.elearn.presentation.ui.screens.details.course.components.AttendanceSessionCard
+import com.elearn.presentation.ui.screens.details.course.components.AttendanceSessionForm
+import com.elearn.presentation.ui.screens.details.course.components.AttendanceSessionSkeleton
 import com.elearn.presentation.ui.screens.details.course.components.CourseDetailSkeleton
+import com.elearn.presentation.ui.screens.details.course.components.EmptyAttendanceSessionsState
 import com.elearn.presentation.ui.screens.details.course.components.EmptyMaterialsState
 import com.elearn.presentation.ui.screens.details.course.components.EnhancedMaterialCard
 import com.elearn.presentation.ui.screens.details.course.components.MaterialCardSkeleton
@@ -81,10 +86,13 @@ import com.elearn.presentation.ui.screens.details.course.components.StudentFAB
 import com.elearn.presentation.ui.screens.details.course.components.TeacherFAB
 import com.elearn.presentation.ui.screens.home.HomeEvent
 import com.elearn.presentation.ui.screens.home.HomeEventBus
+import com.elearn.presentation.ui.screens.home.components.ChipTabs
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.attendance.AttendanceFormViewModel
+import com.elearn.presentation.viewmodel.attendance.AttendanceViewModel
 import com.elearn.presentation.viewmodel.material.MaterialFormViewModel
 import com.elearn.utils.Resource
 import kotlinx.coroutines.flow.collectLatest
@@ -94,6 +102,11 @@ enum class EditType {
     TITLE, DESCRIPTION
 }
 
+private val tabs = listOf(
+    TabList(title = "Materials", icon = Lucide.Newspaper),
+    TabList(title = "Attendance", icon = Lucide.UserCheck)
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailScreen(
@@ -101,6 +114,8 @@ fun CourseDetailScreen(
     courseId: String,
     navController: NavController,
     materialFormViewModel: MaterialFormViewModel = hiltViewModel(),
+    attendanceFormViewModel: AttendanceFormViewModel = hiltViewModel(),
+    attendanceViewModel: AttendanceViewModel = hiltViewModel(),
     courseDetailViewModel: CourseDetailViewModel = hiltViewModel(),
     userViewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -111,8 +126,12 @@ fun CourseDetailScreen(
     val courseNameUpdated by courseDetailViewModel.courseNameUpdated.collectAsState()
     val courseDescriptionUpdated by courseDetailViewModel.courseDescriptionUpdated.collectAsState()
     val userInfo by userViewModel.userInfoState.collectAsState()
+    val attendanceSessions by attendanceViewModel.attendanceSessions.collectAsState()
+
     var addMaterial by remember { mutableStateOf(false) }
+    var addAttendance by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     // Bottom sheet states
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -122,48 +141,49 @@ fun CourseDetailScreen(
     )
     val scope = rememberCoroutineScope()
 
+
     // Initial fetch
     LaunchedEffect(courseId) {
         courseDetailViewModel.fetchCourseDetail(courseId)
         courseDetailViewModel.fetchMaterialByClass(courseId)
+        // TODO: Add attendance sessions fetch
+        attendanceViewModel.fetchAttendanceSessions(courseId)
     }
 
-    LaunchedEffect(courseNameUpdated) {
-        when (courseNameUpdated) {
-            is Resource.Success -> {
+    LaunchedEffect(courseNameUpdated, courseDescriptionUpdated) {
+        when {
+            courseNameUpdated is Resource.Success || courseDescriptionUpdated is Resource.Success -> {
                 courseDetailViewModel.fetchCourseDetail(courseId)
             }
 
-            is Resource.Error -> {}
-            else -> {}
-        }
-    }
-
-    LaunchedEffect(courseDescriptionUpdated) {
-        when (courseDescriptionUpdated) {
-            is Resource.Success -> {
-                courseDetailViewModel.fetchCourseDetail(courseId)
-            }
-
-            is Resource.Error -> {}
+            courseNameUpdated is Resource.Error || courseDescriptionUpdated is Resource.Error -> {}
             else -> {}
         }
     }
 
     LaunchedEffect(Unit) {
-        HomeEventBus.events.collectLatest {
-            if (it is HomeEvent.CreatedMaterial || it is HomeEvent.DeletedMaterial) {
-                courseDetailViewModel.fetchMaterialByClass(courseId)
+        launch {
+            HomeEventBus.events.collectLatest {
+                if (it is HomeEvent.CreatedMaterial || it is HomeEvent.DeletedMaterial) {
+                    courseDetailViewModel.fetchMaterialByClass(courseId)
+                }
+            }
+        }
+
+        launch {
+            CourseDetailEventBus.events.collectLatest {
+                if (it is CourseDetailEvent.CreateAttendanceSession) {
+                    attendanceViewModel.fetchAttendanceSessions(courseId)
+                }
             }
         }
     }
 
-    LaunchedEffect(courseDetailState) {
-        if (courseDetailState !is Resource.Loading) {
+    LaunchedEffect(courseDetailState, attendanceSessions) {
+        if (courseDetailState !is Resource.Loading && attendanceSessions !is Resource.Loading) {
             isRefreshing = false
         }
     }
-
 
     Column {
         ActionBar(
@@ -180,6 +200,8 @@ fun CourseDetailScreen(
                     isRefreshing = true
                     courseDetailViewModel.fetchCourseDetail(courseId, isRefreshing)
                     courseDetailViewModel.fetchMaterialByClass(courseId, isRefreshing)
+                    attendanceViewModel.fetchAttendanceSessions(courseId, isRefreshing)
+                    // TODO: Add attendance sessions refresh
                 }
             ) {
                 LazyColumn(
@@ -189,6 +211,7 @@ fun CourseDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
 
+                    // Course Detail Card
                     item {
                         when (courseDetailState) {
                             is Resource.Loading -> {
@@ -231,104 +254,126 @@ fun CourseDetailScreen(
                         }
                     }
 
-                    // Section Title
+                    // Tab Row
                     item {
-                        when (materialByClassState) {
-                            is Resource.Loading -> {
-                                Box(
-                                    modifier = Modifier
-                                        .width(150.dp)
-                                        .height(24.dp)
-                                        .shimmerEffect()
-                                )
-                            }
+                        ChipTabs(
+                            tabs = tabs,
+                            selectedTabIndex = selectedTab,
+                        ) {
+                            selectedTab = it
+                        }
+                    }
 
-                            else -> {
-                                Text(
-                                    text = "Course Materials",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
+                    // Content based on selected tab
+                    when (selectedTab) {
+                        0 -> {
+                            // Materials List
+                            when (materialByClassState) {
+                                is Resource.Loading -> {
+                                    items(3) { // Show 3 skeleton cards
+                                        MaterialCardSkeleton()
+                                    }
+                                }
+
+                                is Resource.Success -> {
+                                    val materials = materialByClassState.data?.data?.materials
+                                    if (materials.isNullOrEmpty()) {
+                                        item {
+                                            EmptyMaterialsState()
+                                        }
+                                    } else {
+                                        items(
+                                            items = materials,
+                                            key = { it.id }
+                                        ) { item ->
+                                            EnhancedMaterialCard(
+                                                material = item,
+                                                onClick = {
+                                                    navController.navigate(
+                                                        Screen.MaterialDetail.createRoute(item.id)
+                                                    )
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                is Resource.Error -> {
+                                    item {
+                                        EmptyMaterialsState(
+                                            title = "Failed to Load Materials",
+                                            description = "Something went wrong while loading course materials. Please try again.",
+                                            isError = true
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        1 -> {
+                            when (attendanceSessions) {
+                                is Resource.Success -> {
+                                    val attendanceSessionsItem = attendanceSessions.data?.data
+
+                                    if (attendanceSessionsItem.isNullOrEmpty()) {
+                                        item {
+                                            EmptyAttendanceSessionsState()
+                                        }
+                                    } else {
+                                        items(
+                                            items = attendanceSessionsItem,
+                                            key = { it.id }
+                                        ) { session ->
+                                            AttendanceSessionCard(
+                                                session = session,
+                                                userRole = userInfo.data?.data?.role?.name
+                                                    ?: "student",
+                                                onCardClick = {
+                                                    // TODO: Navigate to attendance detail
+                                                },
+                                                onCheckIn = {
+                                                    // TODO: Handle check-in
+                                                },
+                                                isCheckedIn = false // TODO: Get actual check-in status
+                                            )
+                                        }
+                                    }
+                                }
+
+                                is Resource.Loading -> {
+                                    items(3) {
+                                        AttendanceSessionSkeleton()
+                                    }
+                                }
+
+                                is Resource.Error -> {
+                                    item {
+                                        EmptyAttendanceSessionsState(
+                                            title = "Failed to Load Attendance Sessions",
+                                            description = "Something went wrong while loading attendance sessions. Please try again.",
+                                            isError = true
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
 
-                    // Materials List
-                    when (materialByClassState) {
-                        is Resource.Loading -> {
-                            items(3) { // Show 3 skeleton cards
-                                MaterialCardSkeleton()
-                            }
-                        }
-
-                        is Resource.Success -> {
-                            val materials = materialByClassState.data?.data?.materials
-                            if (materials.isNullOrEmpty()) {
-                                // Empty State
-                                item {
-                                    EmptyMaterialsState()
-                                }
-                            } else {
-                                items(
-                                    items = materials,
-                                    key = { it.id }
-                                ) { item ->
-                                    EnhancedMaterialCard(
-                                        material = item,
-                                        onClick = {
-                                            navController.navigate(
-                                                Screen.MaterialDetail.createRoute(
-                                                    item.id
-                                                )
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
-                        is Resource.Error -> {
-                            item {
-                                EmptyMaterialsState(
-                                    title = "Failed to Load Materials",
-                                    description = "Something went wrong while loading course materials. Please try again.",
-                                    isError = true
-                                )
-                            }
-                        }
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
             }
 
+            // FAB based on user role
             when (userInfo.data?.data?.role?.name) {
                 "teacher" -> {
-//                    FloatingActionButton(
-//                        onClick = { addMaterial = true },
-//                        modifier = Modifier
-//                            .align(Alignment.BottomEnd)
-//                            .padding(16.dp),
-//                        containerColor = PrimaryColor,
-//                        shape = CircleShape
-//                    ) {
-//                        Icon(
-//                            imageVector = Lucide.Plus,
-//                            contentDescription = "Add",
-//                            tint = PrimaryForegroundColor
-//                        )
-//                    }
-
                     TeacherFAB(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(16.dp),
-                        onCreateMaterial = {},
-                        onCreateAttendance = {}
-                    )
-                }
-                "student" -> {
-                    StudentFAB(
-                        onCheckIn = {}
+                        onCreateMaterial = { addMaterial = true },
+                        onCreateAttendance = { addAttendance = true }
                     )
                 }
                 else -> {}
@@ -336,7 +381,7 @@ fun CourseDetailScreen(
         }
     }
 
-    // Bottom Sheet for Editing
+    // Bottom Sheet for Editing Course Details
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
@@ -370,6 +415,7 @@ fun CourseDetailScreen(
         }
     }
 
+    // Bottom Sheet for Adding Material
     if (addMaterial) {
         ModalBottomSheet(
             onDismissRequest = {
@@ -387,6 +433,37 @@ fun CourseDetailScreen(
                         bottomSheetState.hide()
                         addMaterial = false
                         materialFormViewModel.resetState()
+                    }
+                }
+            )
+        }
+    }
+
+    // Bottom Sheet for Adding Attendance Session
+    if (addAttendance) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                addAttendance = false
+                attendanceFormViewModel.resetState()
+            },
+            sheetState = bottomSheetState,
+            containerColor = Color.White
+        ) {
+            AttendanceSessionForm(
+                classId = courseId,
+                onSuccess = {
+                    scope.launch {
+                        bottomSheetState.hide()
+                        addAttendance = false
+                        attendanceFormViewModel.resetState()
+                        // TODO: Refresh attendance sessions
+                    }
+                },
+                onCancel = {
+                    scope.launch {
+                        bottomSheetState.hide()
+                        addAttendance = false
+                        attendanceFormViewModel.resetState()
                     }
                 }
             )
