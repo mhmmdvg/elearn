@@ -23,7 +23,10 @@ import com.elearn.presentation.ui.screens.editprofile.EditProfileViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import androidx.compose.runtime.getValue
+import com.elearn.presentation.ui.screens.editprofile.EditProfileEvent
+import com.elearn.presentation.ui.screens.editprofile.EditProfileEventBus
 import com.elearn.utils.Resource
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun EditDescForm(
@@ -35,9 +38,14 @@ fun EditDescForm(
     val state = viewModel.state.value
     val updateDescState by viewModel.updateDescription.collectAsState()
 
-    LaunchedEffect(updateDescState) {
-        if (updateDescState is Resource.Success && updateDescState.data != null) {
-            onSuccess()
+    LaunchedEffect(Unit) {
+        EditProfileEventBus.events.collectLatest {
+            when (it) {
+                is EditProfileEvent.UpdateDescription -> {
+                    onSuccess()
+                }
+                else -> {}
+            }
         }
     }
 

@@ -41,7 +41,8 @@ fun CustomButton(
               modifier = modifier,
               onClick = onClick,
               colors = ButtonDefaults.buttonColors(
-                  containerColor = color ?: AccentColor
+                  containerColor = color ?: AccentColor,
+                  disabledContainerColor = MutedColor
               ),
               enabled = enabled
           ) {
@@ -58,7 +59,7 @@ fun CustomButton(
               modifier = modifier,
               onClick = onClick,
               colors = ButtonDefaults.outlinedButtonColors(
-                  contentColor = color ?: PrimaryColor
+                  contentColor = color ?: PrimaryColor,
               ),
               border = BorderStroke(
                   width = 1.dp,

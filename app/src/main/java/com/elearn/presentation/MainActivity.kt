@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,8 +38,10 @@ import com.elearn.presentation.ui.screens.editprofile.EditProfileScreen
 import com.elearn.presentation.ui.screens.home.HomeScreen
 import com.elearn.presentation.ui.screens.profile.ProfileScreen
 import com.elearn.presentation.ui.screens.splash.SplashScreen
+import com.elearn.presentation.ui.screens.success.attendance.AttendanceCheckinSuccessScreen
 import com.elearn.presentation.ui.theme.ElearnTheme
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.attendance.AttendanceViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -78,19 +81,21 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NavGraph(startDestination: String) {
+    val attendanceViewModel: AttendanceViewModel = hiltViewModel()
 
     val navController = rememberNavController()
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = currentBackStackEntry?.destination?.route
 
     val shouldShowBottomNav = when (currentRoute) {
-        Screen.Login.route, Screen.CourseDetail.route, Screen.MaterialDetail.route, Screen.EditProfile.route -> false
+        Screen.Login.route, Screen.CourseDetail.route, Screen.MaterialDetail.route, Screen.EditProfile.route, Screen.AttendanceSuccess.route -> false
         null -> false
         else -> !currentRoute.startsWith(Screen.Home.route + "/")
     }
 
     Scaffold(
-        containerColor = PrimaryForegroundColor, bottomBar = {
+        containerColor = PrimaryForegroundColor,
+        bottomBar = {
             AnimatedVisibility(
                 visible = shouldShowBottomNav,
                 enter = slideInVertically(initialOffsetY = { it }),
@@ -98,7 +103,8 @@ fun NavGraph(startDestination: String) {
             ) {
                 BottomNavigation(navController)
             }
-        }) { innerPadding ->
+        }
+    ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -108,8 +114,35 @@ fun NavGraph(startDestination: String) {
                 bottom = innerPadding.calculateBottomPadding()
             ),
             enterTransition = {
-                when (targetState.destination.route) {
-                    Screen.Home.route, Screen.Profile.route -> fadeIn(animationSpec = tween(350))
+                when {
+                    // Login → Home/Profile: slide up from bottom
+                    (initialState.destination.route == Screen.Login.route &&
+                            (targetState.destination.route == Screen.Home.route || targetState.destination.route == Screen.Profile.route)) -> {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                            animationSpec = tween(400)
+                        ) + fadeIn(animationSpec = tween(400))
+                    }
+
+                    (initialState.destination.route == Screen.Profile.route &&
+                            (targetState.destination.route == Screen.Login.route)) -> {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                            animationSpec = tween(400)
+                        ) + fadeIn(animationSpec = tween(400))
+                    }
+                    // AttendanceSuccess: slide up from bottom
+                    targetState.destination.route == Screen.AttendanceSuccess.route -> {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                            animationSpec = tween(400)
+                        ) + fadeIn(animationSpec = tween(400))
+                    }
+                    // Home/Profile navigation: fade
+                    targetState.destination.route == Screen.Home.route || targetState.destination.route == Screen.Profile.route -> {
+                        fadeIn(animationSpec = tween(350))
+                    }
+                    // Default: slide from left
                     else -> slideIntoContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Left,
                         animationSpec = tween(350)
@@ -117,8 +150,35 @@ fun NavGraph(startDestination: String) {
                 }
             },
             exitTransition = {
-                when (targetState.destination.route) {
-                    Screen.Home.route, Screen.Profile.route -> fadeOut(animationSpec = tween(350))
+                when {
+                    // Login → Home/Profile: slide down
+                    (initialState.destination.route == Screen.Login.route &&
+                            (targetState.destination.route == Screen.Home.route || targetState.destination.route == Screen.Profile.route)) -> {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                            animationSpec = tween(400)
+                        ) + fadeOut(animationSpec = tween(400))
+                    }
+
+                    (initialState.destination.route == Screen.Profile.route &&
+                            targetState.destination.route == Screen.Login.route) -> {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                            animationSpec = tween(400)
+                        ) + fadeOut(animationSpec = tween(400))
+                    }
+                    // AttendanceSuccess: slide down
+                    targetState.destination.route == Screen.AttendanceSuccess.route -> {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                            animationSpec = tween(400)
+                        ) + fadeOut(animationSpec = tween(400))
+                    }
+                    // Home/Profile navigation: fade
+                    targetState.destination.route == Screen.Home.route || targetState.destination.route == Screen.Profile.route -> {
+                        fadeOut(animationSpec = tween(350))
+                    }
+                    // Default: slide to left
                     else -> slideOutOfContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Left,
                         animationSpec = tween(350)
@@ -126,20 +186,55 @@ fun NavGraph(startDestination: String) {
                 }
             },
             popEnterTransition = {
-                // iOS-style: when going back, previous screen slides in from left
-                slideIntoContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(350)
-                )
+                when {
+                    // Home/Profile → Login: slide up from bottom
+                    ((initialState.destination.route == Screen.Home.route || initialState.destination.route == Screen.Profile.route) &&
+                            targetState.destination.route == Screen.Login.route) -> {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                            animationSpec = tween(400)
+                        ) + fadeIn(animationSpec = tween(400))
+                    }
+                    // From AttendanceSuccess: slide up
+                    initialState.destination.route == Screen.AttendanceSuccess.route -> {
+                        slideIntoContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Up,
+                            animationSpec = tween(400)
+                        ) + fadeIn(animationSpec = tween(400))
+                    }
+                    // Default: slide from right
+                    else -> slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(350)
+                    )
+                }
             },
             popExitTransition = {
-                // iOS-style: when going back, current screen slides out to right
-                slideOutOfContainer(
-                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
-                    animationSpec = tween(350)
-                )
-            }) {
-
+                when {
+                    // Home/Profile → Login: slide down
+                    ((initialState.destination.route == Screen.Home.route || initialState.destination.route == Screen.Profile.route) &&
+                            targetState.destination.route == Screen.Login.route) -> {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                            animationSpec = tween(400)
+                        ) + fadeOut(animationSpec = tween(400))
+                    }
+                    // From AttendanceSuccess: slide down
+                    initialState.destination.route == Screen.AttendanceSuccess.route -> {
+                        slideOutOfContainer(
+                            towards = AnimatedContentTransitionScope.SlideDirection.Down,
+                            animationSpec = tween(400)
+                        ) + fadeOut(animationSpec = tween(400))
+                    }
+                    // Default: slide to right
+                    else -> slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(350)
+                    )
+                }
+            }
+        ) {
+            // ... rest of your composables remain the same
             composable(route = Screen.Login.route) {
                 AuthScreen(
                     onNavigateToHome = {
@@ -174,7 +269,9 @@ fun NavGraph(startDestination: String) {
             ) { backstackEntry ->
                 val courseId = backstackEntry.arguments?.getString("courseId") ?: ""
                 CourseDetailScreen(
-                    courseId = courseId, navController = navController
+                    courseId = courseId,
+                    navController = navController,
+                    attendanceViewModel = attendanceViewModel
                 )
             }
 
@@ -193,6 +290,13 @@ fun NavGraph(startDestination: String) {
                 EditProfileScreen(
                     navController = navController,
                     userId = userId
+                )
+            }
+
+            composable(route = Screen.AttendanceSuccess.route) {
+                AttendanceCheckinSuccessScreen(
+                    viewModel = attendanceViewModel,
+                    onDismiss = { navController.popBackStack() }
                 )
             }
         }

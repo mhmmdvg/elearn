@@ -53,10 +53,12 @@ dependencies {
     implementation(libs.logging.interceptor)
     implementation(libs.navigation.compose)
     implementation(libs.androidx.core.splashscreen)
-
+    implementation(libs.lottie.compose)
 
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
+    implementation(libs.play.services.location)
+    implementation(libs.androidx.activity.compose.v1101)
     ksp(libs.hilt.android.compiler)
 
     implementation(libs.androidx.core.ktx)

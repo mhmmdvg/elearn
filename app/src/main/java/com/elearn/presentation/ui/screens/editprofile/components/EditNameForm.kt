@@ -1,6 +1,5 @@
 package com.elearn.presentation.ui.screens.editprofile.components
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,11 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.elearn.presentation.ui.components.CustomButton
+import com.elearn.presentation.ui.screens.editprofile.EditProfileEvent
+import com.elearn.presentation.ui.screens.editprofile.EditProfileEventBus
 import com.elearn.presentation.ui.screens.editprofile.EditProfileViewModel
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.PrimaryColor
-import androidx.compose.runtime.getValue
 import com.elearn.utils.Resource
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun EditNameForm(
@@ -38,9 +40,15 @@ fun EditNameForm(
     val state = viewModel.state.value
     val updateUserName by viewModel.updateUserName.collectAsState()
 
-    LaunchedEffect(updateUserName) {
-        if (updateUserName is Resource.Success && updateUserName.data != null) {
-            onSuccess()
+    LaunchedEffect(Unit) {
+        EditProfileEventBus.events.collectLatest {
+            when (it) {
+                is EditProfileEvent.UpdateUserName -> {
+                    onSuccess()
+                }
+
+                else -> {}
+            }
         }
     }
 

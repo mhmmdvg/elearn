@@ -1,5 +1,6 @@
 package com.elearn.presentation.ui.screens.details.course.components
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,38 +44,22 @@ import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
-import java.time.Instant
+import com.elearn.utils.TimeUtils
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 
 @Composable
 fun AttendanceSessionCard(
+    modifier: Modifier = Modifier,
     session: AttendanceSessionsData,
     userRole: String,
     onCardClick: () -> Unit,
     onCheckIn: (() -> Unit)? = null,
-    isCheckedIn: Boolean = false,
-    modifier: Modifier = Modifier
+    isCheckedIn: Boolean = false
 ) {
-    val startTime = try {
-        Instant.parse(session.startTime)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDateTime()
-    } catch (e: Exception) {
-        // Fallback to current time if parsing fails
-        LocalDateTime.now()
-    }
-
-    val endTime = try {
-        Instant.parse(session.endTime)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDateTime()
-    } catch (e: Exception) {
-        // Fallback to current time if parsing fails
-        LocalDateTime.now()
-    }
+    val startTime = TimeUtils.parseUtcToLocal(session.startTime) ?: LocalDateTime.now()
+    val endTime = TimeUtils.parseUtcToLocal(session.endTime) ?: LocalDateTime.now()
 
     val currentTime = LocalDateTime.now()
     val isOngoing = currentTime.isAfter(startTime) && currentTime.isBefore(endTime)
@@ -94,7 +79,7 @@ fun AttendanceSessionCard(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(
                 color = PrimaryForegroundColor,

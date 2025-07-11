@@ -66,6 +66,7 @@ import com.composables.icons.lucide.Copy
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Newspaper
 import com.composables.icons.lucide.UserCheck
+import com.elearn.domain.model.AttendanceSessionsData
 import com.elearn.domain.model.CourseData
 import com.elearn.domain.model.CourseResponse
 import com.elearn.presentation.Screen
@@ -74,6 +75,7 @@ import com.elearn.presentation.ui.components.CustomButton
 import com.elearn.presentation.ui.components.MaterialForm
 import com.elearn.presentation.ui.model.TabList
 import com.elearn.presentation.ui.screens.auth.AuthViewModel
+import com.elearn.presentation.ui.screens.details.course.components.AttendanceCheckinBottomSheet
 import com.elearn.presentation.ui.screens.details.course.components.AttendanceSessionCard
 import com.elearn.presentation.ui.screens.details.course.components.AttendanceSessionForm
 import com.elearn.presentation.ui.screens.details.course.components.AttendanceSessionSkeleton
@@ -82,7 +84,6 @@ import com.elearn.presentation.ui.screens.details.course.components.EmptyAttenda
 import com.elearn.presentation.ui.screens.details.course.components.EmptyMaterialsState
 import com.elearn.presentation.ui.screens.details.course.components.EnhancedMaterialCard
 import com.elearn.presentation.ui.screens.details.course.components.MaterialCardSkeleton
-import com.elearn.presentation.ui.screens.details.course.components.StudentFAB
 import com.elearn.presentation.ui.screens.details.course.components.TeacherFAB
 import com.elearn.presentation.ui.screens.home.HomeEvent
 import com.elearn.presentation.ui.screens.home.HomeEventBus
@@ -133,6 +134,10 @@ fun CourseDetailScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
+    var showCheckInBottomSheet by remember { mutableStateOf(false) }
+    var showSuccessScreen by remember { mutableStateOf(false) }
+    var selectedSession by remember { mutableStateOf<AttendanceSessionsData?>(null) }
+
     // Bottom sheet states
     var showBottomSheet by remember { mutableStateOf(false) }
     var editType by remember { mutableStateOf(EditType.TITLE) }
@@ -140,7 +145,6 @@ fun CourseDetailScreen(
         skipPartiallyExpanded = true
     )
     val scope = rememberCoroutineScope()
-
 
     // Initial fetch
     LaunchedEffect(courseId) {
@@ -165,6 +169,7 @@ fun CourseDetailScreen(
         launch {
             HomeEventBus.events.collectLatest {
                 if (it is HomeEvent.CreatedMaterial || it is HomeEvent.DeletedMaterial) {
+                    selectedTab = 0
                     courseDetailViewModel.fetchMaterialByClass(courseId)
                 }
             }
@@ -172,7 +177,8 @@ fun CourseDetailScreen(
 
         launch {
             CourseDetailEventBus.events.collectLatest {
-                if (it is CourseDetailEvent.CreateAttendanceSession) {
+                if (it is CourseDetailEvent.CreateAttendanceSession || it is CourseDetailEvent.CreateCheckinAttendance) {
+                    selectedTab = 1
                     attendanceViewModel.fetchAttendanceSessions(courseId)
                 }
             }
@@ -332,9 +338,10 @@ fun CourseDetailScreen(
                                                     // TODO: Navigate to attendance detail
                                                 },
                                                 onCheckIn = {
-                                                    // TODO: Handle check-in
+                                                    selectedSession = session
+                                                    showCheckInBottomSheet = true
                                                 },
-                                                isCheckedIn = false // TODO: Get actual check-in status
+                                                isCheckedIn = session.hasCheckedIn // TODO: Get actual check-in status
                                             )
                                         }
                                     }
@@ -376,6 +383,7 @@ fun CourseDetailScreen(
                         onCreateAttendance = { addAttendance = true }
                     )
                 }
+
                 else -> {}
             }
         }
@@ -439,6 +447,7 @@ fun CourseDetailScreen(
         }
     }
 
+
     // Bottom Sheet for Adding Attendance Session
     if (addAttendance) {
         ModalBottomSheet(
@@ -464,6 +473,36 @@ fun CourseDetailScreen(
                         bottomSheetState.hide()
                         addAttendance = false
                         attendanceFormViewModel.resetState()
+                    }
+                }
+            )
+        }
+    }
+
+    if (showCheckInBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showCheckInBottomSheet = false
+                attendanceFormViewModel.resetState()
+            },
+            sheetState = bottomSheetState,
+            containerColor = Color.White
+        ) {
+            AttendanceCheckinBottomSheet(
+                attendanceViewModel = attendanceViewModel,
+                navController = navController,
+                session = selectedSession!!,
+                onDismiss = {
+                    scope.launch {
+                        bottomSheetState.hide()
+                        showCheckInBottomSheet = false
+                        attendanceFormViewModel.resetState()
+                    }
+                },
+                onSuccess = {
+                    scope.launch {
+                        bottomSheetState.hide()
+                        showCheckInBottomSheet = false
                     }
                 }
             )

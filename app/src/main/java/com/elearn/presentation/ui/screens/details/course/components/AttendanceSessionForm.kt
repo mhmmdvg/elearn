@@ -1,5 +1,6 @@
 package com.elearn.presentation.ui.screens.details.course.components
 
+import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -53,6 +54,8 @@ import com.composables.icons.lucide.MapPin
 import com.elearn.domain.model.AttendanceSessionsReq
 import com.elearn.presentation.ui.components.CustomButton
 import com.elearn.presentation.ui.components.TimePickerDialog
+import com.elearn.presentation.ui.screens.details.course.CourseDetailEvent
+import com.elearn.presentation.ui.screens.details.course.CourseDetailEventBus
 import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
@@ -61,6 +64,9 @@ import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.attendance.AttendanceFormViewModel
 import com.elearn.presentation.viewmodel.attendance.AttendanceViewModel
 import com.elearn.utils.Resource
+import com.elearn.utils.TimeUtils
+import kotlinx.coroutines.flow.collectLatest
+import java.sql.Time
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -94,6 +100,7 @@ fun AttendanceSessionForm(
     var startTimeTouched by remember { mutableStateOf(false) }
     var endTimeTouched by remember { mutableStateOf(false) }
 
+
     // Validation logic
     val titleError = remember(state.title, titleTouched) {
         if (titleTouched && state.title.isBlank()) "Title is required" else null
@@ -110,10 +117,13 @@ fun AttendanceSessionForm(
     val timeValidationError = remember(state.startTime, state.endTime) {
         if (state.startTime.isNotBlank() && state.endTime.isNotBlank()) {
             try {
-                val startDateTime = LocalDateTime.parse(state.startTime)
-                val endDateTime = LocalDateTime.parse(state.endTime)
-                if (endDateTime.isBefore(startDateTime) || endDateTime.isEqual(startDateTime)) {
-                    "End time must be after start time"
+                val startDateTime = TimeUtils.parseUtcToLocal(state.startTime)
+                val endDateTime = TimeUtils.parseUtcToLocal(state.endTime)
+
+                if (startDateTime != null && endDateTime != null) {
+                    if (endDateTime.isBefore(startDateTime) || endDateTime.isEqual(startDateTime)) {
+                        "End time must be after start time"
+                    } else null
                 } else null
             } catch (e: Exception) {
                 null
@@ -141,13 +151,14 @@ fun AttendanceSessionForm(
         }
     }
 
-    LaunchedEffect(attendanceSessionCreated) {
-        when (attendanceSessionCreated) {
-            is Resource.Success -> {
-                onSuccess()
+    LaunchedEffect(Unit) {
+        CourseDetailEventBus.events.collectLatest {
+            when (it) {
+                is CourseDetailEvent.CreateAttendanceSession -> {
+                    onSuccess()
+                }
+                else -> {}
             }
-
-            else -> {}
         }
     }
 
@@ -280,7 +291,7 @@ fun AttendanceSessionForm(
                             Text(
                                 text = if (state.startTime.isNotBlank()) {
                                     try {
-                                        LocalDateTime.parse(state.startTime).format(dateFormatter)
+                                        TimeUtils.parseUtcToLocal(state.startTime)?.format(dateFormatter) ?: "Select Date"
                                     } catch (e: Exception) {
                                         "Select Date"
                                     }
@@ -327,7 +338,7 @@ fun AttendanceSessionForm(
                             Text(
                                 text = if (state.startTime.isNotBlank()) {
                                     try {
-                                        LocalDateTime.parse(state.startTime).format(timeFormatter)
+                                        TimeUtils.parseUtcToLocal(state.startTime)?.format(timeFormatter) ?: "Select Time"
                                     } catch (e: Exception) {
                                         "Select Time"
                                     }
@@ -398,7 +409,7 @@ fun AttendanceSessionForm(
                             Text(
                                 text = if (state.endTime.isNotBlank()) {
                                     try {
-                                        LocalDateTime.parse(state.endTime).format(dateFormatter)
+                                        TimeUtils.parseUtcToLocal(state.endTime)?.format(dateFormatter) ?: "Select Date"
                                     } catch (e: Exception) {
                                         "Select Date"
                                     }
@@ -445,7 +456,7 @@ fun AttendanceSessionForm(
                             Text(
                                 text = if (state.endTime.isNotBlank()) {
                                     try {
-                                        LocalDateTime.parse(state.endTime).format(timeFormatter)
+                                        TimeUtils.parseUtcToLocal(state.endTime)?.format(timeFormatter) ?: "Select Time"
                                     } catch (e: Exception) {
                                         "Select Time"
                                     }
@@ -527,14 +538,28 @@ fun AttendanceSessionForm(
 
                 if (!isFormValid.value) return@CustomButton
 
+                val startTimeUtc = try {
+                    val localStartTime = LocalDateTime.parse(state.startTime)
+                    TimeUtils.localDateTimeToUtcIso(localStartTime)
+                } catch (e: Exception) {
+                    state.startTime
+                }
+
+                val endTimeUtc = try {
+                    val localEndTime = LocalDateTime.parse(state.endTime)
+                    TimeUtils.localDateTimeToUtcIso(localEndTime)
+                } catch (e: Exception) {
+                    state.endTime
+                }
+
                 // TODO: Call API to create attendance session
                 viewModel.createAttendanceSession(
                     AttendanceSessionsReq(
                         classId = classId,
                         title = state.title,
                         description = state.description,
-                        startTime = state.startTime,
-                        endTime = state.endTime,
+                        startTime = startTimeUtc,
+                        endTime = endTimeUtc,
                         requireLocation = state.requireLocation
                     )
                 )
@@ -550,17 +575,9 @@ fun AttendanceSessionForm(
 
     // Date and Time Pickers
     if (showStartDatePicker) {
+        val currentDateTime = TimeUtils.parseUtcToLocal(state.startTime) ?: LocalDateTime.now()
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = if (state.startTime.isNotBlank()) {
-                try {
-                    LocalDateTime.parse(state.startTime).atZone(ZoneId.systemDefault()).toInstant()
-                        .toEpochMilli()
-                } catch (e: Exception) {
-                    System.currentTimeMillis()
-                }
-            } else {
-                System.currentTimeMillis()
-            }
+            initialSelectedDateMillis = currentDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         )
 
         DatePickerDialog(
@@ -576,7 +593,7 @@ fun AttendanceSessionForm(
                                 .atZone(ZoneId.systemDefault())
                                 .toLocalDate()
 
-                            val currentDateTime = if (state.startTime.isNotBlank()) {
+                            val currentDate = if (state.startTime.isNotBlank()) {
                                 try {
                                     LocalDateTime.parse(state.startTime)
                                 } catch (e: Exception) {
@@ -587,7 +604,7 @@ fun AttendanceSessionForm(
                             }
 
                             val newDateTime =
-                                LocalDateTime.of(selectedDate, currentDateTime.toLocalTime())
+                                LocalDateTime.of(selectedDate, currentDate.toLocalTime())
                             formViewModel.onStartTimeChanged(newDateTime.toString())
                         }
                         showStartDatePicker = false
@@ -615,19 +632,10 @@ fun AttendanceSessionForm(
     }
 
     if (showStartTimePicker) {
-        val currentTime = if (state.startTime.isNotBlank()) {
-            try {
-                LocalDateTime.parse(state.startTime).toLocalTime()
-            } catch (e: Exception) {
-                LocalTime.now()
-            }
-        } else {
-            LocalTime.now()
-        }
-
+        val currentDateTime = TimeUtils.parseUtcToLocal(state.startTime) ?: LocalDateTime.now()
         val timePickerState = rememberTimePickerState(
-            initialHour = currentTime.hour,
-            initialMinute = currentTime.minute
+            initialHour = currentDateTime.hour,
+            initialMinute = currentDateTime.minute
         )
 
         TimePickerDialog(
@@ -638,7 +646,7 @@ fun AttendanceSessionForm(
                         val selectedTime =
                             LocalTime.of(timePickerState.hour, timePickerState.minute)
 
-                        val currentDateTime = if (state.startTime.isNotBlank()) {
+                        val currentTime = if (state.startTime.isNotBlank()) {
                             try {
                                 LocalDateTime.parse(state.startTime)
                             } catch (e: Exception) {
@@ -649,7 +657,7 @@ fun AttendanceSessionForm(
                         }
 
                         val newDateTime =
-                            LocalDateTime.of(currentDateTime.toLocalDate(), selectedTime)
+                            LocalDateTime.of(currentTime.toLocalDate(), selectedTime)
                         formViewModel.onStartTimeChanged(newDateTime.toString())
                         showStartTimePicker = false
                     }
@@ -680,17 +688,9 @@ fun AttendanceSessionForm(
     }
 
     if (showEndDatePicker) {
+        val currentDateTime = TimeUtils.parseUtcToLocal(state.endTime) ?: LocalDateTime.now()
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = if (state.endTime.isNotBlank()) {
-                try {
-                    LocalDateTime.parse(state.endTime).atZone(ZoneId.systemDefault()).toInstant()
-                        .toEpochMilli()
-                } catch (e: Exception) {
-                    System.currentTimeMillis()
-                }
-            } else {
-                System.currentTimeMillis()
-            }
+            initialSelectedDateMillis = currentDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         )
 
         DatePickerDialog(
@@ -703,7 +703,7 @@ fun AttendanceSessionForm(
                                 .atZone(ZoneId.systemDefault())
                                 .toLocalDate()
 
-                            val currentDateTime = if (state.endTime.isNotBlank()) {
+                            val currentDate = if (state.endTime.isNotBlank()) {
                                 try {
                                     LocalDateTime.parse(state.endTime)
                                 } catch (e: Exception) {
@@ -714,7 +714,7 @@ fun AttendanceSessionForm(
                             }
 
                             val newDateTime =
-                                LocalDateTime.of(selectedDate, currentDateTime.toLocalTime())
+                                LocalDateTime.of(selectedDate, currentDate.toLocalTime())
                             formViewModel.onEndTimeChanged(newDateTime.toString())
                         }
                         showEndDatePicker = false
@@ -743,19 +743,10 @@ fun AttendanceSessionForm(
     }
 
     if (showEndTimePicker) {
-        val currentTime = if (state.endTime.isNotBlank()) {
-            try {
-                LocalDateTime.parse(state.endTime).toLocalTime()
-            } catch (e: Exception) {
-                LocalTime.now().plusHours(1)
-            }
-        } else {
-            LocalTime.now().plusHours(1)
-        }
-
+        val currentDateTime = TimeUtils.parseUtcToLocal(state.endTime) ?: LocalDateTime.now()
         val timePickerState = rememberTimePickerState(
-            initialHour = currentTime.hour,
-            initialMinute = currentTime.minute
+            initialHour = currentDateTime.hour,
+            initialMinute = currentDateTime.minute
         )
 
         TimePickerDialog(
@@ -766,7 +757,7 @@ fun AttendanceSessionForm(
                         val selectedTime =
                             LocalTime.of(timePickerState.hour, timePickerState.minute)
 
-                        val currentDateTime = if (state.endTime.isNotBlank()) {
+                        val currentTime = if (state.endTime.isNotBlank()) {
                             try {
                                 LocalDateTime.parse(state.endTime)
                             } catch (e: Exception) {
@@ -777,7 +768,7 @@ fun AttendanceSessionForm(
                         }
 
                         val newDateTime =
-                            LocalDateTime.of(currentDateTime.toLocalDate(), selectedTime)
+                            LocalDateTime.of(currentTime.toLocalDate(), selectedTime)
                         formViewModel.onEndTimeChanged(newDateTime.toString())
                         showEndTimePicker = false
                     }

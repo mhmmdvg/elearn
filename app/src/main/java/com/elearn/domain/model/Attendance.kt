@@ -13,6 +13,7 @@ data class AttendanceSessionsData(
     val endTime: String,
     val requireLocation: Boolean,
     val createdAt: String,
+    val hasCheckedIn: Boolean,
     val studentCount: Int,
     val attendanceCount: Int
 )
@@ -28,6 +29,7 @@ data class AttendanceCheckinData(
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float,
+    val status: String,
     val notes: String,
     val createdAt: String
 )
@@ -48,10 +50,16 @@ data class AttendanceCheckinReq(
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float,
-    val notes: String
+    val notes: String?
 )
 
 data class CachedAttendanceSession(
     val data: HTTPResponse<List<AttendanceSessionsData>>,
     val timestamp: Long
+)
+
+data class LocationData(
+    val latitude: Double,
+    val longitude: Double,
+    val accuracy: Float
 )

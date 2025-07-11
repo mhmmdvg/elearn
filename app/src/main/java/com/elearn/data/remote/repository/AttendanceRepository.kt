@@ -1,5 +1,6 @@
 package com.elearn.data.remote.repository
 
+import android.util.Log
 import com.elearn.data.remote.api.AttendanceApi
 import com.elearn.domain.model.AttendanceCheckinData
 import com.elearn.domain.model.AttendanceCheckinReq
@@ -91,6 +92,10 @@ class AttendanceRepository @Inject constructor(
 
     fun invalidateAttendanceSessionCache(classId: String) {
         _attendanceSessionsCache.remove(classId)
+    }
+
+    fun invalidateAllAttendanceSessionCache() {
+        _attendanceSessionsCache.clear()
     }
 
     private fun isCacheValid(timestamp: Long): Boolean {

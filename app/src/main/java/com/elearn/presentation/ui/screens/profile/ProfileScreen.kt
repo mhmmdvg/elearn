@@ -66,6 +66,7 @@ import com.elearn.presentation.ui.theme.MutedColor
 import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
+import com.elearn.presentation.viewmodel.attendance.AttendanceViewModel
 import com.elearn.utils.Resource
 import kotlinx.coroutines.launch
 
@@ -80,6 +81,7 @@ private val settingsList = listOf(
 fun ProfileScreen(
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel(),
+    locationViewModel: AttendanceViewModel = hiltViewModel(),
     navController: NavController,
 ) {
 
@@ -157,6 +159,7 @@ fun ProfileScreen(
                         bottomSheetState.hide()
                         showLogoutBottomSheet = false
                         viewModel.logout()
+                        locationViewModel.clearLocationCache()
                     }
                 },
                 onCancel = {
