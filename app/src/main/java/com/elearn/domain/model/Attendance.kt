@@ -23,7 +23,7 @@ data class AttendanceSessionDetailRes(
     val session: AttendanceSessionDetailData,
     val summary: AttendanceSessionSummary,
     val checkedInStudents: List<AttendanceStudent>,
-    val notChekedInStudents: List<AttendanceStudent>
+    val notCheckedInStudents: List<AttendanceStudent>
 )
 
 @Serializable

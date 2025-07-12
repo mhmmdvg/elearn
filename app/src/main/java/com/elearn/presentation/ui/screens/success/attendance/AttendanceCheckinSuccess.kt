@@ -99,28 +99,6 @@ fun AttendanceCheckinSuccessScreen(
         LottieSuccess(
             modifier = Modifier.size(200.dp)
         )
-//        Box(
-//            modifier = Modifier
-//                .size(120.dp)
-//                .clip(CircleShape)
-//                .background(
-//                    brush = Brush.radialGradient(
-//                        colors = listOf(
-//                            Color(0xFF4CAF50).copy(alpha = 0.2f),
-//                            Color(0xFF4CAF50).copy(alpha = 0.1f),
-//                            Color.Transparent
-//                        )
-//                    )
-//                ),
-//            contentAlignment = Alignment.Center
-//        ) {
-//            // Since we can't use actual Lottie in this example,
-//            // I'll create a animated success icon
-//            AnimatedSuccessIcon(
-//                isPlaying = !animationPlayed,
-//                onAnimationEnd = { animationPlayed = true }
-//            )
-//        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
