@@ -5,6 +5,7 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Profile : Screen("profile")
     object AttendanceSuccess : Screen("attendance-success")
+    object AttendanceHistory : Screen("attendance-history")
 
     object MaterialDetail : Screen("material-detail/{materialId}"){
         fun createRoute(materialId: String) = "material-detail/$materialId"
@@ -14,6 +15,12 @@ sealed class Screen(val route: String) {
     }
     object EditProfile : Screen("profile/{userId}") {
         fun createRoute(userId: String) = "profile/$userId"
+    }
+    object AttendanceSessionDetail : Screen("attendance-session/{classId}/{sessionId}") {
+        fun createRoute(classId: String, sessionId: String) = "attendance-session/$classId/$sessionId"
+    }
+    object AttendanceCheckinDetail : Screen("attendance-checkin/{attendanceId}") {
+        fun createRoute(attendanceId: String) = "attendance-checkin/$attendanceId"
     }
 
 }

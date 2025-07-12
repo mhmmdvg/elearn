@@ -1,7 +1,6 @@
 package com.elearn.presentation.ui.screens.details.course
 
 import ActionBar
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -150,7 +149,6 @@ fun CourseDetailScreen(
     LaunchedEffect(courseId) {
         courseDetailViewModel.fetchCourseDetail(courseId)
         courseDetailViewModel.fetchMaterialByClass(courseId)
-        // TODO: Add attendance sessions fetch
         attendanceViewModel.fetchAttendanceSessions(courseId)
     }
 
@@ -253,10 +251,6 @@ fun CourseDetailScreen(
                                     }
                                 )
                             }
-
-                            else -> {
-                                CourseDetailSkeleton()
-                            }
                         }
                     }
 
@@ -335,13 +329,18 @@ fun CourseDetailScreen(
                                                 userRole = userInfo.data?.data?.role?.name
                                                     ?: "student",
                                                 onCardClick = {
-                                                    // TODO: Navigate to attendance detail
+                                                    navController.navigate(
+                                                        Screen.AttendanceSessionDetail.createRoute(
+                                                            classId = session.classId,
+                                                            sessionId = session.id
+                                                        )
+                                                    )
                                                 },
                                                 onCheckIn = {
                                                     selectedSession = session
                                                     showCheckInBottomSheet = true
                                                 },
-                                                isCheckedIn = session.hasCheckedIn // TODO: Get actual check-in status
+                                                isCheckedIn = session.hasCheckedIn
                                             )
                                         }
                                     }
@@ -615,7 +614,6 @@ private fun CourseDetailCard(
                     icon = Icons.Default.Person,
                     label = "Students",
                     value = (courseDetailState as? Resource.Success<CourseResponse<CourseData>>)?.data?.data?._count?.enrollments.toString()
-                        ?: "0"
                 )
             }
         }

@@ -31,6 +31,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.elearn.data.remote.local.TokenManager
 import com.elearn.presentation.ui.components.BottomNavigation
+import com.elearn.presentation.ui.screens.attendancecheckindetail.AttendanceCheckinDetailScreen
+import com.elearn.presentation.ui.screens.attendancehistory.AttendanceHistoryScreen
+import com.elearn.presentation.ui.screens.attendancesession.AttendanceSessionDetailScreen
 import com.elearn.presentation.ui.screens.auth.AuthScreen
 import com.elearn.presentation.ui.screens.details.course.CourseDetailScreen
 import com.elearn.presentation.ui.screens.details.material.MaterialDetailScreen
@@ -293,10 +296,44 @@ fun NavGraph(startDestination: String) {
                 )
             }
 
+            composable(
+                route = Screen.AttendanceSessionDetail.route,
+                arguments = listOf(
+                    navArgument("classId") { type = NavType.StringType },
+                    navArgument("sessionId") { type = NavType.StringType }
+                )
+            ) {
+                val classId = it.arguments?.getString("classId") ?: ""
+                val sessionId = it.arguments?.getString("sessionId") ?: ""
+
+                AttendanceSessionDetailScreen(
+                    navController = navController,
+                    classId = classId,
+                    sessionId = sessionId
+                )
+            }
+
             composable(route = Screen.AttendanceSuccess.route) {
                 AttendanceCheckinSuccessScreen(
                     viewModel = attendanceViewModel,
                     onDismiss = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.AttendanceHistory.route) {
+                AttendanceHistoryScreen(
+                    navController = navController
+                )
+            }
+
+            composable(
+                route = Screen.AttendanceCheckinDetail.route,
+                arguments = listOf(navArgument("attendanceId") { type = NavType.StringType })
+            ) {
+                val attendanceId = it.arguments?.getString("attendanceId") ?: ""
+                AttendanceCheckinDetailScreen(
+                    navController = navController,
+                    attendanceId = attendanceId
                 )
             }
         }
