@@ -1,9 +1,9 @@
 package com.elearn.data.remote.repository
 
-import android.util.Log
 import com.elearn.data.remote.api.AttendanceApi
 import com.elearn.domain.model.AttendanceCheckinData
 import com.elearn.domain.model.AttendanceCheckinReq
+import com.elearn.domain.model.AttendanceSessionDetailRes
 import com.elearn.domain.model.AttendanceSessionsData
 import com.elearn.domain.model.AttendanceSessionsReq
 import com.elearn.domain.model.CachedAttendanceSession
@@ -17,7 +17,9 @@ import javax.inject.Singleton
 class AttendanceRepository @Inject constructor(
     private val attendanceApi: AttendanceApi
 ) {
-    private var _attendanceSessionsCache: MutableMap<String, CachedAttendanceSession> =
+    private var _attendanceSessionsCache: MutableMap<String, CachedAttendanceSession<List<AttendanceSessionsData>>> =
+        mutableMapOf()
+    private var _attendanceSessionDetailCache: MutableMap<String, CachedAttendanceSession<AttendanceSessionDetailRes>> =
         mutableMapOf()
 
     private val _cacheExpirationTime = 10 * 60 * 1000L
@@ -34,6 +36,36 @@ class AttendanceRepository @Inject constructor(
             if (res.isSuccessful) {
                 res.body()?.let {
                     _attendanceSessionsCache[classId] = CachedAttendanceSession(
+                        data = it,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    Result.success(it)
+                } ?: Result.failure(Exception("Empty Response Body"))
+            } else {
+                val errorBody = res.errorBody()?.string()
+                val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody ?: "")
+                Result.failure(Exception(errorResponse.error))
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
+    suspend fun fetchAttendanceSessionDetail(
+        classId: String,
+        sessionId: String
+    ): Result<HTTPResponse<AttendanceSessionDetailRes>> {
+        val cachedData = _attendanceSessionDetailCache[sessionId]
+        if (cachedData != null && isCacheValid(cachedData.timestamp)) {
+            return Result.success(cachedData.data)
+        }
+
+        return try {
+            val res = attendanceApi.getAttendanceSessionDetail(classId, sessionId)
+
+            if (res.isSuccessful) {
+                res.body()?.let {
+                    _attendanceSessionDetailCache[sessionId] = CachedAttendanceSession(
                         data = it,
                         timestamp = System.currentTimeMillis()
                     )
@@ -94,8 +126,13 @@ class AttendanceRepository @Inject constructor(
         _attendanceSessionsCache.remove(classId)
     }
 
+    fun invalidateAttendanceSessionDetailCache(sessionId: String) {
+        _attendanceSessionDetailCache.remove(sessionId)
+    }
+
     fun invalidateAllAttendanceSessionCache() {
         _attendanceSessionsCache.clear()
+        _attendanceSessionDetailCache.clear()
     }
 
     private fun isCacheValid(timestamp: Long): Boolean {

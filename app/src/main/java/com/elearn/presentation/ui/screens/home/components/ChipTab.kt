@@ -67,7 +67,7 @@ fun ChipTabs(
 fun Chip(
     modifier: Modifier = Modifier,
     title: String,
-    icon: ImageVector,
+    icon: ImageVector?,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -112,12 +112,14 @@ fun Chip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
         ) {
-            Icon(
-                modifier = Modifier.size(14.dp),
-                imageVector = icon,
-                contentDescription = title,
-                tint = iconColor
-            )
+            icon?.let {
+                Icon(
+                    modifier = Modifier.size(14.dp),
+                    imageVector = it,
+                    contentDescription = title,
+                    tint = iconColor
+                )
+            }
             Text(
                 text = title,
                 color = contentColor,

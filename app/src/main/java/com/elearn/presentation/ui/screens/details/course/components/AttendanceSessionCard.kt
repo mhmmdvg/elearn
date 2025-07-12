@@ -1,6 +1,5 @@
 package com.elearn.presentation.ui.screens.details.course.components
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +47,6 @@ import com.elearn.utils.TimeUtils
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-
 @Composable
 fun AttendanceSessionCard(
     modifier: Modifier = Modifier,
@@ -64,7 +62,6 @@ fun AttendanceSessionCard(
     val currentTime = LocalDateTime.now()
     val isOngoing = currentTime.isAfter(startTime) && currentTime.isBefore(endTime)
     val isPast = currentTime.isAfter(endTime)
-    val isUpcoming = currentTime.isBefore(startTime)
 
     val statusColor = when {
         isOngoing -> Color(0xFF4CAF50) // Green
@@ -93,7 +90,9 @@ fun AttendanceSessionCard(
             .clip(
                 shape = RoundedCornerShape(16.dp)
             )
-            .clickable { onCardClick() }
+            .then(
+                if (userRole == "teacher") Modifier.clickable { onCardClick() } else Modifier
+            )
 
     ) {
         Column(
@@ -117,7 +116,7 @@ fun AttendanceSessionCard(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    if (!session.description.isNullOrBlank()) {
+                    if (session.description.isNotBlank()) {
                         Text(
                             text = session.description,
                             fontSize = 14.sp,
