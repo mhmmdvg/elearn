@@ -45,6 +45,8 @@ import com.composables.icons.lucide.X
 import com.elearn.presentation.ui.components.LottieSuccess
 import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
+import com.elearn.presentation.ui.theme.MutedForegroundColor
+import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.attendance.AttendanceViewModel
 import com.elearn.utils.TimeUtils
@@ -117,7 +119,7 @@ fun AttendanceCheckinSuccessScreen(
             text = if (isLate) "You've checked in late, but your attendance has been recorded."
             else "Your attendance has been recorded successfully.",
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = PrimaryColor,
             textAlign = TextAlign.Center,
             lineHeight = 22.sp
         )
@@ -147,7 +149,7 @@ fun AttendanceCheckinSuccessScreen(
                     text = currentSession?.title ?: "",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = PrimaryColor
                 )
 
                 // Check-in Details
@@ -202,32 +204,32 @@ fun AttendanceCheckinSuccessScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Primary Button - View Details
-            Button(
-                onClick = onViewDetails,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentColor
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Lucide.Eye,
-                        contentDescription = "View Details",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "View Attendance Details",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
+//            Button(
+//                onClick = onViewDetails,
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(48.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = AccentColor
+//                ),
+//                shape = RoundedCornerShape(12.dp)
+//            ) {
+//                Row(
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    Icon(
+//                        imageVector = Lucide.Eye,
+//                        contentDescription = "View Details",
+//                        modifier = Modifier.size(20.dp)
+//                    )
+//                    Text(
+//                        text = "View Attendance Details",
+//                        fontSize = 16.sp,
+//                        fontWeight = FontWeight.Medium
+//                    )
+//                }
+//            }
 
             // Secondary Button - Done
             OutlinedButton(
@@ -277,13 +279,13 @@ private fun DetailRow(
             Text(
                 text = label,
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = PrimaryColor,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = value,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MutedForegroundColor.copy(0.8f)
             )
         }
     }

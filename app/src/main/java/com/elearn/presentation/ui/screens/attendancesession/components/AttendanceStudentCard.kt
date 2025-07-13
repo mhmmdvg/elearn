@@ -55,6 +55,8 @@ import com.composables.icons.lucide.Target
 import com.composables.icons.lucide.X
 import com.elearn.domain.model.AttendanceStudent
 import com.elearn.presentation.ui.theme.MutedColor
+import com.elearn.presentation.ui.theme.MutedForegroundColor
+import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.utils.LocationUtils
 import com.elearn.utils.TimeUtils
@@ -125,7 +127,7 @@ fun AttendanceStudentCard(
                     Text(
                         text = student.student.email,
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MutedForegroundColor
                     )
 
                     if (student.checkedInAt != null) {
@@ -138,13 +140,13 @@ fun AttendanceStudentCard(
                                 imageVector = Lucide.Clock,
                                 contentDescription = "Check-in time",
                                 modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = PrimaryColor.copy(alpha=0.7f)
                             )
                             TimeUtils.parseUtcToLocal(student.checkedInAt)?.let {
                                 Text(
                                     text = it.format(DateTimeFormatter.ofPattern("HH:mm")),
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = PrimaryColor.copy(alpha=0.7f)
                                 )
                             }
                         }
@@ -233,7 +235,7 @@ fun AttendanceStudentCard(
                                         label = "chevron_rotation"
                                     ).value
                                 ),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MutedForegroundColor
                         )
                     }
 
@@ -279,7 +281,7 @@ fun AttendanceStudentCard(
                                 .fillMaxWidth()
                                 .padding(top = 8.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    color = MutedColor.copy(alpha = 0.3f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(12.dp),
@@ -295,12 +297,12 @@ fun AttendanceStudentCard(
                                         imageVector = Lucide.MapPin,
                                         contentDescription = "Loading",
                                         modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = PrimaryColor.copy(0.7f)
                                     )
                                     Text(
                                         text = "Loading address...",
                                         fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = PrimaryColor.copy(0.7f),
                                         fontStyle = FontStyle.Italic
                                     )
                                 }
@@ -311,7 +313,7 @@ fun AttendanceStudentCard(
                                         student.longitude
                                     ),
                                     fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = PrimaryColor.copy(0.7f)
                                 )
                             }
 
@@ -324,7 +326,7 @@ fun AttendanceStudentCard(
                                         imageVector = Lucide.Target,
                                         contentDescription = "Accuracy",
                                         modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = PrimaryColor.copy(0.7f)
                                     )
                                     Text(
                                         text = "Accuracy: ${
@@ -333,7 +335,7 @@ fun AttendanceStudentCard(
                                             )
                                         }",
                                         fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = PrimaryColor.copy(0.7f)
                                     )
                                 }
                             }
@@ -344,7 +346,7 @@ fun AttendanceStudentCard(
                                     student.longitude
                                 ),
                                 fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                color = PrimaryColor.copy(0.5f),
                                 fontFamily = FontFamily.Monospace
                             )
                         }
@@ -376,7 +378,7 @@ fun AttendanceStudentCard(
                                 } ?: "Location recorded"
                             },
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MutedForegroundColor,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
@@ -387,7 +389,7 @@ fun AttendanceStudentCard(
                 Text(
                     text = "Note: ${student.notes}",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MutedForegroundColor,
                     modifier = Modifier.padding(top = 8.dp),
                     fontStyle = FontStyle.Italic
                 )

@@ -27,6 +27,8 @@ import com.composables.icons.lucide.MapPin
 import com.elearn.domain.model.AttendanceSessionDetailData
 import com.elearn.domain.model.AttendanceSessionSummary
 import com.elearn.presentation.ui.theme.MutedColor
+import com.elearn.presentation.ui.theme.MutedForegroundColor
+import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.utils.TimeUtils
 import java.time.format.DateTimeFormatter
@@ -65,13 +67,14 @@ fun AttendanceSessionInfoCard(
                     Text(
                         text = session?.title ?: "",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryColor
                     )
 
                     Text(
                         text = session?.className ?: "",
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MutedForegroundColor,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -106,7 +109,7 @@ fun AttendanceSessionInfoCard(
                         imageVector = Lucide.Clock,
                         contentDescription = "Time",
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = PrimaryColor.copy(alpha = 0.8f)
                     )
                     Text(
                         text = "${
@@ -117,7 +120,7 @@ fun AttendanceSessionInfoCard(
                                 ?.format(DateTimeFormatter.ofPattern("HH:mm"))
                         }",
                         fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = PrimaryColor.copy(alpha = 0.8f)
                     )
                 }
 
@@ -130,12 +133,12 @@ fun AttendanceSessionInfoCard(
                             imageVector = Lucide.MapPin,
                             contentDescription = "Location Required",
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MutedForegroundColor
                         )
                         Text(
                             text = "Location Required",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MutedForegroundColor
                         )
                     }
                 }
@@ -216,7 +219,7 @@ private fun AttendanceSummaryItem(
         Text(
             text = title,
             fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MutedForegroundColor
         )
     }
 }
