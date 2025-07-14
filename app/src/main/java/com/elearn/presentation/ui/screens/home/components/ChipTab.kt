@@ -7,12 +7,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -23,15 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Newspaper
 import com.elearn.presentation.ui.model.TabList
 import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
-import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 
 @Composable
@@ -41,23 +46,56 @@ fun ChipTabs(
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        tabs.forEachIndexed { index, it ->
-            Chip(
-                title = it.title,
-                icon = it.icon,
-                selected = index == selectedTabIndex,
-                onClick = { onTabSelected(index) },
-                modifier = Modifier.weight(1f)
-            )
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val density = LocalDensity.current
 
-            if (index < tabs.size - 1) {
-                Spacer(
-                    modifier = Modifier.width(8.dp)
+    // Calculate responsive spacing based on screen width
+    val horizontalSpacing = with(density) {
+        when {
+            screenWidth < 360.dp -> 4.dp
+            screenWidth < 480.dp -> 6.dp
+            screenWidth < 600.dp -> 8.dp
+            else -> 10.dp
+        }
+    }
+
+    // Use LazyRow for very small screens to allow horizontal scrolling
+    val useScrollableLayout = screenWidth < 360.dp
+
+    if (useScrollableLayout) {
+        LazyRow(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(horizontalSpacing),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            itemsIndexed(tabs) { index, tab ->
+                Chip(
+                    title = tab.title,
+                    icon = tab.icon,
+                    selected = index == selectedTabIndex,
+                    onClick = { onTabSelected(index) },
+                    modifier = Modifier.widthIn(min = 80.dp)
                 )
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                Chip(
+                    title = tab.title,
+                    icon = tab.icon,
+                    selected = index == selectedTabIndex,
+                    onClick = { onTabSelected(index) },
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (index < tabs.size - 1) {
+                    Spacer(modifier = Modifier.width(horizontalSpacing))
+                }
             }
         }
     }
@@ -71,6 +109,49 @@ fun Chip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val density = LocalDensity.current
+
+    // Responsive text size based on screen width and density
+    val textSize = with(density) {
+        when {
+            screenWidth < 360.dp -> 10.sp
+            screenWidth < 480.dp -> 11.sp
+            screenWidth < 600.dp -> 12.sp
+            screenWidth < 720.dp -> 13.sp
+            else -> 14.sp
+        }
+    }
+
+    // Responsive icon size
+    val iconSize = with(density) {
+        when {
+            screenWidth < 360.dp -> 12.dp
+            screenWidth < 480.dp -> 13.dp
+            screenWidth < 600.dp -> 14.dp
+            else -> 15.dp
+        }
+    }
+
+    // Responsive padding
+    val chipPadding = with(density) {
+        when {
+            screenWidth < 360.dp -> PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+            screenWidth < 480.dp -> PaddingValues(horizontal = 7.dp, vertical = 7.dp)
+            screenWidth < 600.dp -> PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+            else -> PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+        }
+    }
+
+    // Responsive spacing between icon and text
+    val iconTextSpacing = with(density) {
+        when {
+            screenWidth < 360.dp -> 4.dp
+            screenWidth < 480.dp -> 5.dp
+            else -> 6.dp
+        }
+    }
 
     val backgroundColor by animateColorAsState(
         targetValue = if (selected) AccentColor else PrimaryForegroundColor,
@@ -104,29 +185,41 @@ fun Chip(
             .background(color = backgroundColor, shape = CircleShape)
             .clip(shape = CircleShape)
             .clickable(onClick = onClick)
-            .padding(8.dp),
+            .padding(chipPadding),
         contentAlignment = Alignment.Center
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+            horizontalArrangement = Arrangement.spacedBy(
+                iconTextSpacing,
+                Alignment.CenterHorizontally
+            )
         ) {
             icon?.let {
                 Icon(
-                    modifier = Modifier.size(14.dp),
+                    modifier = Modifier.size(iconSize),
                     imageVector = it,
                     contentDescription = title,
                     tint = iconColor
                 )
             }
-            Text(
-                text = title,
-                color = contentColor,
-                fontSize = 12.sp,
-                fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal
-            )
-        }
 
+            // Use AutoSizeText for better text fitting
+            Box(
+                modifier = Modifier.weight(1f, fill = false),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    color = contentColor,
+                    fontSize = textSize,
+                    fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
     }
 }

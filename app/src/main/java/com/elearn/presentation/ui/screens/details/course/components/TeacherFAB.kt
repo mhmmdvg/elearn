@@ -90,7 +90,7 @@ private fun MultiOptionFAB(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = PrimaryColor
                         )
                     }
 

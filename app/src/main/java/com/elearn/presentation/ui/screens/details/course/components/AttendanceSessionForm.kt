@@ -1,6 +1,5 @@
 package com.elearn.presentation.ui.screens.details.course.components
 
-import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -43,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,7 +66,6 @@ import com.elearn.presentation.viewmodel.attendance.AttendanceViewModel
 import com.elearn.utils.Resource
 import com.elearn.utils.TimeUtils
 import kotlinx.coroutines.flow.collectLatest
-import java.sql.Time
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -80,14 +79,19 @@ fun AttendanceSessionForm(
     formViewModel: AttendanceFormViewModel = hiltViewModel(),
     viewModel: AttendanceViewModel = hiltViewModel(),
     classId: String,
-    onSuccess: () -> Unit,
-    onCancel: () -> Unit
+    onSuccess: () -> Unit
 ) {
     val state = formViewModel.state.value
     val scrollState = rememberScrollState()
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
     val attendanceSessionCreated by viewModel.attendanceSessionCreated.collectAsState()
+
+    // Get screen configuration for responsive design
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val isCompact = screenWidth < 600.dp
+    val isTablet = screenWidth >= 600.dp
 
     // Date and Time picker states
     var showStartDatePicker by remember { mutableStateOf(false) }
@@ -100,6 +104,15 @@ fun AttendanceSessionForm(
     var startTimeTouched by remember { mutableStateOf(false) }
     var endTimeTouched by remember { mutableStateOf(false) }
 
+    // Responsive values
+    val horizontalPadding = if (isTablet) 24.dp else 16.dp
+    val verticalSpacing = if (isTablet) 20.dp else 16.dp
+    val titleFontSize = if (isTablet) 24.sp else 20.sp
+    val labelFontSize = if (isTablet) 18.sp else 16.sp
+    val descriptionHeight = if (isTablet) 140.dp else 120.dp
+    val cornerRadius = if (isTablet) 28.dp else 18.dp
+    val iconSize = if (isTablet) 24.dp else 20.dp
+    val buttonSpacing = if (isTablet) 24.dp else 16.dp
 
     // Validation logic
     val titleError = remember(state.title, titleTouched) {
@@ -165,14 +178,15 @@ fun AttendanceSessionForm(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(horizontal = horizontalPadding)
+            .padding(vertical = 16.dp)
             .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(verticalSpacing)
     ) {
         // Header
         Text(
             text = "Create Attendance Session",
-            fontSize = 20.sp,
+            fontSize = titleFontSize,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -183,6 +197,7 @@ fun AttendanceSessionForm(
         ) {
             Text(
                 text = "Session Title",
+                fontSize = labelFontSize,
                 fontWeight = FontWeight.SemiBold
             )
             OutlinedTextField(
@@ -194,7 +209,7 @@ fun AttendanceSessionForm(
                 placeholder = { Text("e.g., Week 1 - Introduction") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                shape = RoundedCornerShape(22),
+                shape = RoundedCornerShape(cornerRadius),
                 isError = titleError != null,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = PrimaryColor,
@@ -221,6 +236,7 @@ fun AttendanceSessionForm(
         ) {
             Text(
                 text = "Description",
+                fontSize = labelFontSize,
                 fontWeight = FontWeight.SemiBold
             )
             OutlinedTextField(
@@ -229,10 +245,10 @@ fun AttendanceSessionForm(
                 placeholder = { Text("Session description...") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .height(descriptionHeight),
                 minLines = 3,
                 maxLines = 5,
-                shape = RoundedCornerShape(16),
+                shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = PrimaryColor,
                     focusedBorderColor = PrimaryColor,
@@ -248,25 +264,23 @@ fun AttendanceSessionForm(
         ) {
             Text(
                 text = "Start Time",
-                fontSize = 16.sp,
+                fontSize = labelFontSize,
                 fontWeight = FontWeight.Medium
             )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Start Date
+            if (isCompact) {
+                // Vertical layout for compact screens
                 Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Start Date
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
                                 width = 1.dp,
                                 color = if (startTimeError != null) Color.Red else MutedColor,
-                                shape = RoundedCornerShape(22)
+                                shape = RoundedCornerShape(cornerRadius)
                             )
                             .padding(16.dp)
                             .clickable(
@@ -285,13 +299,14 @@ fun AttendanceSessionForm(
                             Icon(
                                 imageVector = Lucide.Calendar,
                                 contentDescription = "Calendar",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(iconSize),
                                 tint = if (state.startTime.isNotBlank()) PrimaryColor else MutedColor
                             )
                             Text(
                                 text = if (state.startTime.isNotBlank()) {
                                     try {
-                                        TimeUtils.parseUtcToLocal(state.startTime)?.format(dateFormatter) ?: "Select Date"
+                                        TimeUtils.parseUtcToLocal(state.startTime)
+                                            ?.format(dateFormatter) ?: "Select Date"
                                     } catch (e: Exception) {
                                         "Select Date"
                                     }
@@ -300,20 +315,15 @@ fun AttendanceSessionForm(
                             )
                         }
                     }
-                }
 
-                // Start Time
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                    // Start Time
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
                                 width = 1.dp,
                                 color = if (startTimeError != null) Color.Red else MutedColor,
-                                shape = RoundedCornerShape(22)
+                                shape = RoundedCornerShape(cornerRadius)
                             )
                             .padding(16.dp)
                             .clickable(
@@ -332,19 +342,121 @@ fun AttendanceSessionForm(
                             Icon(
                                 imageVector = Lucide.Clock,
                                 contentDescription = "Clock",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(iconSize),
                                 tint = if (state.startTime.isNotBlank()) PrimaryColor else MutedColor
                             )
                             Text(
                                 text = if (state.startTime.isNotBlank()) {
                                     try {
-                                        TimeUtils.parseUtcToLocal(state.startTime)?.format(timeFormatter) ?: "Select Time"
+                                        TimeUtils.parseUtcToLocal(state.startTime)
+                                            ?.format(timeFormatter) ?: "Select Time"
                                     } catch (e: Exception) {
                                         "Select Time"
                                     }
                                 } else "Select Time",
                                 color = if (state.startTime.isNotBlank()) PrimaryColor else MutedColor
                             )
+                        }
+                    }
+                }
+            } else {
+                // Horizontal layout for larger screens
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Start Date
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = if (startTimeError != null) Color.Red else MutedColor,
+                                    shape = RoundedCornerShape(cornerRadius)
+                                )
+                                .padding(16.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        startTimeTouched = true
+                                        showStartDatePicker = true
+                                    }
+                                )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Lucide.Calendar,
+                                    contentDescription = "Calendar",
+                                    modifier = Modifier.size(iconSize),
+                                    tint = if (state.startTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                                Text(
+                                    text = if (state.startTime.isNotBlank()) {
+                                        try {
+                                            TimeUtils.parseUtcToLocal(state.startTime)
+                                                ?.format(dateFormatter) ?: "Select Date"
+                                        } catch (e: Exception) {
+                                            "Select Date"
+                                        }
+                                    } else "Select Date",
+                                    color = if (state.startTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                            }
+                        }
+                    }
+
+                    // Start Time
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = if (startTimeError != null) Color.Red else MutedColor,
+                                    shape = RoundedCornerShape(cornerRadius)
+                                )
+                                .padding(16.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        startTimeTouched = true
+                                        showStartTimePicker = true
+                                    }
+                                )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Lucide.Clock,
+                                    contentDescription = "Clock",
+                                    modifier = Modifier.size(iconSize),
+                                    tint = if (state.startTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                                Text(
+                                    text = if (state.startTime.isNotBlank()) {
+                                        try {
+                                            TimeUtils.parseUtcToLocal(state.startTime)
+                                                ?.format(timeFormatter) ?: "Select Time"
+                                        } catch (e: Exception) {
+                                            "Select Time"
+                                        }
+                                    } else "Select Time",
+                                    color = if (state.startTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                            }
                         }
                     }
                 }
@@ -366,25 +478,23 @@ fun AttendanceSessionForm(
         ) {
             Text(
                 text = "End Time",
-                fontSize = 16.sp,
+                fontSize = labelFontSize,
                 fontWeight = FontWeight.Medium
             )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // End Date
+            if (isCompact) {
+                // Vertical layout for compact screens
                 Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // End Date
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
                                 width = 1.dp,
                                 color = if (endTimeError != null) Color.Red else MutedColor,
-                                shape = RoundedCornerShape(22)
+                                shape = RoundedCornerShape(cornerRadius)
                             )
                             .padding(16.dp)
                             .clickable(
@@ -403,13 +513,14 @@ fun AttendanceSessionForm(
                             Icon(
                                 imageVector = Lucide.Calendar,
                                 contentDescription = "Calendar",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(iconSize),
                                 tint = if (state.endTime.isNotBlank()) PrimaryColor else MutedColor
                             )
                             Text(
                                 text = if (state.endTime.isNotBlank()) {
                                     try {
-                                        TimeUtils.parseUtcToLocal(state.endTime)?.format(dateFormatter) ?: "Select Date"
+                                        TimeUtils.parseUtcToLocal(state.endTime)
+                                            ?.format(dateFormatter) ?: "Select Date"
                                     } catch (e: Exception) {
                                         "Select Date"
                                     }
@@ -418,20 +529,15 @@ fun AttendanceSessionForm(
                             )
                         }
                     }
-                }
 
-                // End Time
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                    // End Time
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
                                 width = 1.dp,
                                 color = if (endTimeError != null) Color.Red else MutedColor,
-                                shape = RoundedCornerShape(22)
+                                shape = RoundedCornerShape(cornerRadius)
                             )
                             .padding(16.dp)
                             .clickable(
@@ -450,19 +556,121 @@ fun AttendanceSessionForm(
                             Icon(
                                 imageVector = Lucide.Clock,
                                 contentDescription = "Clock",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(iconSize),
                                 tint = if (state.endTime.isNotBlank()) PrimaryColor else MutedColor
                             )
                             Text(
                                 text = if (state.endTime.isNotBlank()) {
                                     try {
-                                        TimeUtils.parseUtcToLocal(state.endTime)?.format(timeFormatter) ?: "Select Time"
+                                        TimeUtils.parseUtcToLocal(state.endTime)
+                                            ?.format(timeFormatter) ?: "Select Time"
                                     } catch (e: Exception) {
                                         "Select Time"
                                     }
                                 } else "Select Time",
                                 color = if (state.endTime.isNotBlank()) PrimaryColor else MutedColor
                             )
+                        }
+                    }
+                }
+            } else {
+                // Horizontal layout for larger screens
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // End Date
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = if (endTimeError != null) Color.Red else MutedColor,
+                                    shape = RoundedCornerShape(cornerRadius)
+                                )
+                                .padding(16.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        endTimeTouched = true
+                                        showEndDatePicker = true
+                                    }
+                                )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Lucide.Calendar,
+                                    contentDescription = "Calendar",
+                                    modifier = Modifier.size(iconSize),
+                                    tint = if (state.endTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                                Text(
+                                    text = if (state.endTime.isNotBlank()) {
+                                        try {
+                                            TimeUtils.parseUtcToLocal(state.endTime)
+                                                ?.format(dateFormatter) ?: "Select Date"
+                                        } catch (e: Exception) {
+                                            "Select Date"
+                                        }
+                                    } else "Select Date",
+                                    color = if (state.endTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                            }
+                        }
+                    }
+
+                    // End Time
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    width = 1.dp,
+                                    color = if (endTimeError != null) Color.Red else MutedColor,
+                                    shape = RoundedCornerShape(cornerRadius)
+                                )
+                                .padding(16.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        endTimeTouched = true
+                                        showEndTimePicker = true
+                                    }
+                                )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Lucide.Clock,
+                                    contentDescription = "Clock",
+                                    modifier = Modifier.size(iconSize),
+                                    tint = if (state.endTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                                Text(
+                                    text = if (state.endTime.isNotBlank()) {
+                                        try {
+                                            TimeUtils.parseUtcToLocal(state.endTime)
+                                                ?.format(timeFormatter) ?: "Select Time"
+                                        } catch (e: Exception) {
+                                            "Select Time"
+                                        }
+                                    } else "Select Time",
+                                    color = if (state.endTime.isNotBlank()) PrimaryColor else MutedColor
+                                )
+                            }
                         }
                     }
                 }
@@ -495,22 +703,25 @@ fun AttendanceSessionForm(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
             ) {
                 Icon(
                     imageVector = Lucide.MapPin,
                     contentDescription = "Location",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(iconSize)
                 )
-                Column {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
                         text = "Require Location",
-                        fontSize = 16.sp,
+                        fontSize = labelFontSize,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = "Students must be at specific location to check in",
-                        fontSize = 12.sp,
+                        fontSize = if (isTablet) 14.sp else 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -527,7 +738,7 @@ fun AttendanceSessionForm(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(buttonSpacing))
 
         // Action Buttons
         CustomButton(
@@ -570,14 +781,15 @@ fun AttendanceSessionForm(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(buttonSpacing))
     }
 
-    // Date and Time Pickers
+    // Date and Time Pickers (unchanged)
     if (showStartDatePicker) {
         val currentDateTime = TimeUtils.parseUtcToLocal(state.startTime) ?: LocalDateTime.now()
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = currentDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            initialSelectedDateMillis = currentDateTime.atZone(ZoneId.systemDefault()).toInstant()
+                .toEpochMilli()
         )
 
         DatePickerDialog(
@@ -690,7 +902,8 @@ fun AttendanceSessionForm(
     if (showEndDatePicker) {
         val currentDateTime = TimeUtils.parseUtcToLocal(state.endTime) ?: LocalDateTime.now()
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = currentDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            initialSelectedDateMillis = currentDateTime.atZone(ZoneId.systemDefault()).toInstant()
+                .toEpochMilli()
         )
 
         DatePickerDialog(

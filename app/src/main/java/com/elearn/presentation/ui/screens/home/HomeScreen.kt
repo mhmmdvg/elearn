@@ -31,9 +31,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,6 +103,7 @@ fun HomeScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     var joinClass by remember { mutableStateOf(false) }
     var resetJoinForm by remember { mutableStateOf(false) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
     /* Data */
     val classes by courseViewModel.classes.collectAsState()
@@ -143,7 +146,7 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(state.selectedTabIndex) {
+    LaunchedEffect(selectedTab) {
         viewModel.onQueryChanged("")
     }
 
@@ -217,7 +220,7 @@ fun HomeScreen(
             isRefreshing = isRefreshing,
             onRefresh = {
                 isRefreshing = true
-                if (state.selectedTabIndex == 0) {
+                if (selectedTab == 0) {
                     materialViewModel.refreshMaterials()
                 } else {
                     courseViewModel.refreshClasses()
@@ -236,19 +239,19 @@ fun HomeScreen(
                     ) {
                         ChipTabs(
                             tabs = tabs,
-                            selectedTabIndex = state.selectedTabIndex,
-                            onTabSelected = { viewModel.onTabSelected(it) },
+                            selectedTabIndex = selectedTab,
+                            onTabSelected = { selectedTab = it },
                         )
                         SearchInput(
                             query = state.searchQuery,
                             onQueryChanged = { viewModel.onQueryChanged(it) },
-                            placeholder = if (state.selectedTabIndex == 0) "Search materials..." else "Search classes..."
+                            placeholder = if (selectedTab == 0) "Search materials..." else "Search classes..."
                         )
                     }
                 }
 
                 /* Card */
-                when (state.selectedTabIndex) {
+                when (selectedTab) {
                     0 -> {
                         when (materials) {
                             is Resource.Success -> {
@@ -404,7 +407,7 @@ fun HomeScreen(
             }
         }
 
-        if (state.selectedTabIndex == 1 && isTeacher) {
+        if (selectedTab == 1 && isTeacher) {
             FloatingActionButton(
                 onClick = { addClass = true },
                 modifier = Modifier
