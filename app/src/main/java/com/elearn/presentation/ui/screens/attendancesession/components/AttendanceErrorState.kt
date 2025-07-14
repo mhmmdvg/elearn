@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.CircleAlert
 import com.composables.icons.lucide.Lucide
+import com.elearn.presentation.ui.theme.MutedForegroundColor
 
 @Composable
 fun ErrorState(
@@ -37,7 +38,7 @@ fun ErrorState(
         Text(
             text = message,
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MutedForegroundColor,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp)
         )

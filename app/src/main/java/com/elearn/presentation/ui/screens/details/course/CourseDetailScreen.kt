@@ -466,13 +466,6 @@ fun CourseDetailScreen(
                         attendanceFormViewModel.resetState()
                         // TODO: Refresh attendance sessions
                     }
-                },
-                onCancel = {
-                    scope.launch {
-                        bottomSheetState.hide()
-                        addAttendance = false
-                        attendanceFormViewModel.resetState()
-                    }
                 }
             )
         }

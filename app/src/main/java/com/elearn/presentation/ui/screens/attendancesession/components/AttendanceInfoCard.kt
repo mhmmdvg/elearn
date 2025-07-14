@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Clock
@@ -38,6 +42,10 @@ fun AttendanceSessionInfoCard(
     session: AttendanceSessionDetailData?,
     summary: AttendanceSessionSummary?
 ) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val isCompact = screenWidth < 600.dp
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -52,8 +60,11 @@ fun AttendanceSessionInfoCard(
             )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(
+                horizontal = if (isCompact) 12.dp else 16.dp,
+                vertical = if (isCompact) 12.dp else 16.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 16.dp)
         ) {
             // Session Title and Status
             Row(
@@ -66,18 +77,24 @@ fun AttendanceSessionInfoCard(
                 ) {
                     Text(
                         text = session?.title ?: "",
-                        fontSize = 18.sp,
+                        fontSize = if (isCompact) 16.sp else 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryColor
+                        color = PrimaryColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
 
                     Text(
                         text = session?.className ?: "",
-                        fontSize = 14.sp,
+                        fontSize = if (isCompact) 12.sp else 14.sp,
                         color = MutedForegroundColor,
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -87,91 +104,194 @@ fun AttendanceSessionInfoCard(
                 ) {
                     Text(
                         text = if (session?.isActive == true) "Active" else "Ended",
-                        fontSize = 12.sp,
+                        fontSize = if (isCompact) 10.sp else 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (session?.isActive == true) Color(0xFF4CAF50) else Color(
                             0xFF757575
                         ),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(
+                            horizontal = if (isCompact) 6.dp else 8.dp,
+                            vertical = if (isCompact) 3.dp else 4.dp
+                        )
                     )
                 }
             }
 
-            // Time Info
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Time Info - Make it responsive with wrapping
+            if (isCompact) {
+                // Stack vertically on small screens
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Lucide.Clock,
-                        contentDescription = "Time",
-                        modifier = Modifier.size(16.dp),
-                        tint = PrimaryColor.copy(alpha = 0.8f)
-                    )
-                    Text(
-                        text = "${
-                            TimeUtils.parseUtcToLocal(session?.startTime ?: "")
-                                ?.format(DateTimeFormatter.ofPattern("HH:mm"))
-                        } - ${
-                            TimeUtils.parseUtcToLocal(session?.endTime ?: "")
-                                ?.format(DateTimeFormatter.ofPattern("HH:mm"))
-                        }",
-                        fontSize = 14.sp,
-                        color = PrimaryColor.copy(alpha = 0.8f)
-                    )
-                }
-
-                if (session?.requireLocation == true) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Lucide.MapPin,
-                            contentDescription = "Location Required",
-                            modifier = Modifier.size(16.dp),
-                            tint = MutedForegroundColor
+                            imageVector = Lucide.Clock,
+                            contentDescription = "Time",
+                            modifier = Modifier.size(14.dp),
+                            tint = PrimaryColor.copy(alpha = 0.8f)
                         )
                         Text(
-                            text = "Location Required",
-                            fontSize = 14.sp,
-                            color = MutedForegroundColor
+                            text = "${
+                                TimeUtils.parseUtcToLocal(session?.startTime ?: "")
+                                    ?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                            } - ${
+                                TimeUtils.parseUtcToLocal(session?.endTime ?: "")
+                                    ?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                            }",
+                            fontSize = 12.sp,
+                            color = PrimaryColor.copy(alpha = 0.8f)
                         )
+                    }
+
+                    if (session?.requireLocation == true) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Lucide.MapPin,
+                                contentDescription = "Location Required",
+                                modifier = Modifier.size(14.dp),
+                                tint = MutedForegroundColor
+                            )
+                            Text(
+                                text = "Location Required",
+                                fontSize = 12.sp,
+                                color = MutedForegroundColor
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Side by side on larger screens
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Lucide.Clock,
+                            contentDescription = "Time",
+                            modifier = Modifier.size(16.dp),
+                            tint = PrimaryColor.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            text = "${
+                                TimeUtils.parseUtcToLocal(session?.startTime ?: "")
+                                    ?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                            } - ${
+                                TimeUtils.parseUtcToLocal(session?.endTime ?: "")
+                                    ?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                            }",
+                            fontSize = 14.sp,
+                            color = PrimaryColor.copy(alpha = 0.8f)
+                        )
+                    }
+
+                    if (session?.requireLocation == true) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Lucide.MapPin,
+                                contentDescription = "Location Required",
+                                modifier = Modifier.size(16.dp),
+                                tint = MutedForegroundColor
+                            )
+                            Text(
+                                text = "Location Required",
+                                fontSize = 14.sp,
+                                color = MutedForegroundColor
+                            )
+                        }
                     }
                 }
             }
 
-            // Attendance Summary
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                AttendanceSummaryItem(
-                    title = "Total",
-                    count = summary?.totalStudents ?: 0,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            // Attendance Summary - Responsive grid
+            if (isCompact && screenWidth < 360.dp) {
+                // Very small screens: 2x2 grid
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        AttendanceSummaryItem(
+                            title = "Total",
+                            count = summary?.totalStudents ?: 0,
+                            color = MaterialTheme.colorScheme.primary,
+                            isCompact = true
+                        )
 
-                AttendanceSummaryItem(
-                    title = "Present",
-                    count = summary?.presentCount ?: 0,
-                    color = Color(0xFF4CAF50)
-                )
+                        AttendanceSummaryItem(
+                            title = "Present",
+                            count = summary?.presentCount ?: 0,
+                            color = Color(0xFF4CAF50),
+                            isCompact = true
+                        )
+                    }
 
-                AttendanceSummaryItem(
-                    title = "Late",
-                    count = summary?.lateCount ?: 0,
-                    color = Color(0xFFFF9800)
-                )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        AttendanceSummaryItem(
+                            title = "Late",
+                            count = summary?.lateCount ?: 0,
+                            color = Color(0xFFFF9800),
+                            isCompact = true
+                        )
 
-                AttendanceSummaryItem(
-                    title = "Absent",
-                    count = summary?.absentCount ?: 0,
-                    color = Color(0xFFF44336)
-                )
+                        AttendanceSummaryItem(
+                            title = "Absent",
+                            count = summary?.absentCount ?: 0,
+                            color = Color(0xFFF44336),
+                            isCompact = true
+                        )
+                    }
+                }
+            } else {
+                // Regular screens: single row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    AttendanceSummaryItem(
+                        title = "Total",
+                        count = summary?.totalStudents ?: 0,
+                        color = MaterialTheme.colorScheme.primary,
+                        isCompact = isCompact
+                    )
+
+                    AttendanceSummaryItem(
+                        title = "Present",
+                        count = summary?.presentCount ?: 0,
+                        color = Color(0xFF4CAF50),
+                        isCompact = isCompact
+                    )
+
+                    AttendanceSummaryItem(
+                        title = "Late",
+                        count = summary?.lateCount ?: 0,
+                        color = Color(0xFFFF9800),
+                        isCompact = isCompact
+                    )
+
+                    AttendanceSummaryItem(
+                        title = "Absent",
+                        count = summary?.absentCount ?: 0,
+                        color = Color(0xFFF44336),
+                        isCompact = isCompact
+                    )
+                }
             }
 
             // Attendance Rate
@@ -182,13 +302,13 @@ fun AttendanceSessionInfoCard(
             ) {
                 Text(
                     text = "Attendance Rate",
-                    fontSize = 14.sp,
+                    fontSize = if (isCompact) 12.sp else 14.sp,
                     fontWeight = FontWeight.Medium
                 )
 
                 Text(
                     text = "${summary?.attendanceRate ?: 0}%",
-                    fontSize = 16.sp,
+                    fontSize = if (isCompact) 14.sp else 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = when {
                         (summary?.attendanceRate ?: 0) >= 80 -> Color(0xFF4CAF50)
@@ -205,21 +325,24 @@ fun AttendanceSessionInfoCard(
 private fun AttendanceSummaryItem(
     title: String,
     count: Int,
-    color: Color
+    color: Color,
+    isCompact: Boolean = false
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = count.toString(),
-            fontSize = 20.sp,
+            fontSize = if (isCompact) 18.sp else 20.sp,
             fontWeight = FontWeight.Bold,
             color = color
         )
         Text(
             text = title,
-            fontSize = 12.sp,
-            color = MutedForegroundColor
+            fontSize = if (isCompact) 10.sp else 12.sp,
+            color = MutedForegroundColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

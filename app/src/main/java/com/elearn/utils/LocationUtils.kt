@@ -1,5 +1,6 @@
 package com.elearn.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Geocoder
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ object LocationUtils {
         }
     }
 
+    @SuppressLint("DefaultLocale")
     fun formatCoordinates(latitude: Double, longitude: Double): String {
         val latDirection = if (latitude >= 0) "N" else "S"
         val lngDirection = if (longitude >= 0) "E" else "W"

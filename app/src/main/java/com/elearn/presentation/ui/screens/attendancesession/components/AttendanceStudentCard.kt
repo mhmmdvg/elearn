@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,10 +41,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Check
@@ -68,9 +74,30 @@ fun AttendanceStudentCard(
     student: AttendanceStudent
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     var locationAddress by remember { mutableStateOf<String?>(null) }
     var isLoadingLocation by remember { mutableStateOf(false) }
     var showLocationDetails by remember { mutableStateOf(false) }
+
+    // Responsive values based on screen size
+    val screenWidth = configuration.screenWidthDp.dp
+    val isCompact = screenWidth < 600.dp
+    val isTablet = screenWidth >= 600.dp
+
+    // Dynamic sizing
+    val cardPadding = if (isCompact) 12.dp else 16.dp
+    val cornerRadius = if (isCompact) 16.dp else 16.dp
+    val nameTextSize = if (isCompact) 14.sp else 16.sp
+    val emailTextSize = if (isCompact) 12.sp else 14.sp
+    val statusTextSize = if (isCompact) 10.sp else 12.sp
+    val timeTextSize = if (isCompact) 10.sp else 12.sp
+    val locationTextSize = if (isCompact) 10.sp else 11.sp
+    val locationDetailTextSize = if (isCompact) 9.sp else 10.sp
+    val locationSummaryTextSize = if (isCompact) 9.sp else 10.sp
+    val coordinatesTextSize = if (isCompact) 8.sp else 9.sp
+    val noteTextSize = if (isCompact) 10.sp else 11.sp
+    val iconSize = if (isCompact) 12.dp else 14.dp
+    val statusIconSize = if (isCompact) 10.dp else 12.dp
 
     val statusColor = when (student.status) {
         "PRESENT" -> Color(0xFF4CAF50)
@@ -96,304 +123,429 @@ fun AttendanceStudentCard(
             .fillMaxWidth()
             .background(
                 color = PrimaryForegroundColor,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(cornerRadius)
             )
             .border(
                 width = 1.dp,
                 color = MutedColor,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(cornerRadius)
             )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(cardPadding)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
+            // Main student info - responsive layout
+            if (isTablet) {
+                // Tablet layout - more spacious
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${student.student.firstName} ${student.student.lastName}",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
+                    StudentInfoSection(
+                        student = student,
+                        nameTextSize = nameTextSize,
+                        emailTextSize = emailTextSize,
+                        timeTextSize = timeTextSize,
+                        iconSize = iconSize,
+                        modifier = Modifier.weight(1f)
                     )
 
-                    Text(
-                        text = student.student.email,
-                        fontSize = 14.sp,
-                        color = MutedForegroundColor
-                    )
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    if (student.checkedInAt != null) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Lucide.Clock,
-                                contentDescription = "Check-in time",
-                                modifier = Modifier.size(14.dp),
-                                tint = PrimaryColor.copy(alpha=0.7f)
-                            )
-                            TimeUtils.parseUtcToLocal(student.checkedInAt)?.let {
-                                Text(
-                                    text = it.format(DateTimeFormatter.ofPattern("HH:mm")),
-                                    fontSize = 12.sp,
-                                    color = PrimaryColor.copy(alpha=0.7f)
-                                )
-                            }
-                        }
-                    }
+                    StatusBadge(
+                        status = student.status,
+                        statusColor = statusColor,
+                        statusTextSize = statusTextSize,
+                        statusIconSize = statusIconSize
+                    )
                 }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = statusColor.copy(alpha = 0.1f)
+            } else {
+                // Phone layout - compact
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = when (student.status) {
-                                "PRESENT" -> Lucide.Check
-                                "LATE" -> Lucide.Clock
-                                "ABSENT" -> Lucide.X
-                                else -> Lucide.Minus
-                            },
-                            contentDescription = student.status,
-                            modifier = Modifier.size(12.dp),
-                            tint = statusColor
-                        )
-                        Text(
-                            text = when (student.status) {
-                                "PRESENT" -> "Present"
-                                "LATE" -> "Late"
-                                "ABSENT" -> "Absent"
-                                else -> "Unknown"
-                            },
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = statusColor
-                        )
-                    }
+                    StudentInfoSection(
+                        student = student,
+                        nameTextSize = nameTextSize,
+                        emailTextSize = emailTextSize,
+                        timeTextSize = timeTextSize,
+                        iconSize = iconSize,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    StatusBadge(
+                        status = student.status,
+                        statusColor = statusColor,
+                        statusTextSize = statusTextSize,
+                        statusIconSize = statusIconSize
+                    )
                 }
             }
 
+            // Location section - responsive
             if (student.latitude != null && student.longitude != null && student.status != "ABSENT") {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { showLocationDetails = !showLocationDetails },
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Lucide.MapPin,
-                                contentDescription = "Location",
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "Check-in Location",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Lucide.ChevronDown,
-                            contentDescription = if (showLocationDetails) "Hide details" else "Show details",
-                            modifier = Modifier
-                                .size(16.dp)
-                                .rotate(
-                                    animateFloatAsState(
-                                        targetValue = if (showLocationDetails) 180f else 0f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessMediumLow
-                                        ),
-                                        label = "chevron_rotation"
-                                    ).value
-                                ),
-                            tint = MutedForegroundColor
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = showLocationDetails,
-                        enter = slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            initialOffsetY = { -it / 3 }
-                        ) + expandVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ) + fadeIn(
-                            animationSpec = tween(
-                                durationMillis = 300,
-                                easing = LinearOutSlowInEasing
-                            )
-                        ),
-                        exit = slideOutVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            targetOffsetY = { -it / 3 }
-                        ) + shrinkVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ) + fadeOut(
-                            animationSpec = tween(
-                                durationMillis = 200,
-                                easing = FastOutLinearInEasing
-                            )
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .background(
-                                    color = MutedColor.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            // Address
-                            if (isLoadingLocation) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Lucide.MapPin,
-                                        contentDescription = "Loading",
-                                        modifier = Modifier.size(12.dp),
-                                        tint = PrimaryColor.copy(0.7f)
-                                    )
-                                    Text(
-                                        text = "Loading address...",
-                                        fontSize = 11.sp,
-                                        color = PrimaryColor.copy(0.7f),
-                                        fontStyle = FontStyle.Italic
-                                    )
-                                }
-                            } else {
-                                Text(
-                                    text = locationAddress ?: LocationUtils.formatCoordinates(
-                                        student.latitude,
-                                        student.longitude
-                                    ),
-                                    fontSize = 11.sp,
-                                    color = PrimaryColor.copy(0.7f)
-                                )
-                            }
-
-                            if (student.accuracy != null) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Lucide.Target,
-                                        contentDescription = "Accuracy",
-                                        modifier = Modifier.size(12.dp),
-                                        tint = PrimaryColor.copy(0.7f)
-                                    )
-                                    Text(
-                                        text = "Accuracy: ${
-                                            LocationUtils.getAccuracyDescription(
-                                                student.accuracy
-                                            )
-                                        }",
-                                        fontSize = 11.sp,
-                                        color = PrimaryColor.copy(0.7f)
-                                    )
-                                }
-                            }
-
-                            Text(
-                                text = LocationUtils.formatCoordinates(
-                                    student.latitude,
-                                    student.longitude
-                                ),
-                                fontSize = 10.sp,
-                                color = PrimaryColor.copy(0.5f),
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                    }
-
-                    // Animated summary text when collapsed
-                    AnimatedVisibility(
-                        visible = !showLocationDetails,
-                        enter = fadeIn(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ),
-                        exit = fadeOut(
-                            animationSpec = tween(
-                                durationMillis = 150,
-                                easing = FastOutLinearInEasing
-                            )
-                        )
-                    ) {
-                        Text(
-                            text = if (isLoadingLocation) {
-                                "Loading location..."
-                            } else {
-                                locationAddress?.let { address ->
-                                    // Show first part of address (street name or city)
-                                    address.split(",").firstOrNull()?.trim() ?: "Location recorded"
-                                } ?: "Location recorded"
-                            },
-                            fontSize = 11.sp,
-                            color = MutedForegroundColor,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
+                LocationSection(
+                    student = student,
+                    locationAddress = locationAddress,
+                    isLoadingLocation = isLoadingLocation,
+                    showLocationDetails = showLocationDetails,
+                    onToggleDetails = { showLocationDetails = !showLocationDetails },
+                    locationTextSize = locationTextSize,
+                    locationDetailTextSize = locationDetailTextSize,
+                    locationSummaryTextSize = locationSummaryTextSize,
+                    coordinatesTextSize = coordinatesTextSize,
+                    iconSize = iconSize,
+                    cornerRadius = cornerRadius - 4.dp,
+                    isCompact = isCompact
+                )
             }
 
+            // Notes section - responsive
             if (!student.notes.isNullOrBlank()) {
                 Text(
                     text = "Note: ${student.notes}",
-                    fontSize = 11.sp,
+                    fontSize = noteTextSize,
                     color = MutedForegroundColor,
-                    modifier = Modifier.padding(top = 8.dp),
-                    fontStyle = FontStyle.Italic
+                    modifier = Modifier.padding(top = if (isCompact) 6.dp else 8.dp),
+                    fontStyle = FontStyle.Italic,
+                    lineHeight = if (isCompact) 14.sp else 16.sp
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun StudentInfoSection(
+    student: AttendanceStudent,
+    nameTextSize: TextUnit,
+    emailTextSize: TextUnit,
+    timeTextSize: TextUnit,
+    iconSize: Dp,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = "${student.student.firstName} ${student.student.lastName}",
+            fontSize = nameTextSize,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Text(
+            text = student.student.email,
+            fontSize = emailTextSize,
+            color = MutedForegroundColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        if (student.checkedInAt != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Lucide.Clock,
+                    contentDescription = "Check-in time",
+                    modifier = Modifier.size(iconSize),
+                    tint = PrimaryColor.copy(alpha = 0.7f)
+                )
+                TimeUtils.parseUtcToLocal(student.checkedInAt)?.let {
+                    Text(
+                        text = it.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        fontSize = timeTextSize,
+                        color = PrimaryColor.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusBadge(
+    status: String,
+    statusColor: Color,
+    statusTextSize: TextUnit,
+    statusIconSize: Dp
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = statusColor.copy(alpha = 0.1f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = when (status) {
+                    "PRESENT" -> Lucide.Check
+                    "LATE" -> Lucide.Clock
+                    "ABSENT" -> Lucide.X
+                    else -> Lucide.Minus
+                },
+                contentDescription = status,
+                modifier = Modifier.size(statusIconSize),
+                tint = statusColor
+            )
+            Text(
+                text = when (status) {
+                    "PRESENT" -> "Present"
+                    "LATE" -> "Late"
+                    "ABSENT" -> "Absent"
+                    else -> "Unknown"
+                },
+                fontSize = statusTextSize,
+                fontWeight = FontWeight.Medium,
+                color = statusColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun LocationSection(
+    student: AttendanceStudent,
+    locationAddress: String?,
+    isLoadingLocation: Boolean,
+    showLocationDetails: Boolean,
+    onToggleDetails: () -> Unit,
+    locationTextSize: TextUnit,
+    locationDetailTextSize: TextUnit,
+    locationSummaryTextSize: TextUnit,
+    coordinatesTextSize: TextUnit,
+    iconSize: Dp,
+    cornerRadius: Dp,
+    isCompact: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = if (isCompact) 8.dp else 12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(cornerRadius))
+                .clickable { onToggleDetails() }
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Lucide.MapPin,
+                    contentDescription = "Location",
+                    modifier = Modifier.size(iconSize),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Check-in Location",
+                    fontSize = locationTextSize,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Icon(
+                imageVector = Lucide.ChevronDown,
+                contentDescription = if (showLocationDetails) "Hide details" else "Show details",
+                modifier = Modifier
+                    .size(if (isCompact) 14.dp else 16.dp)
+                    .rotate(
+                        animateFloatAsState(
+                            targetValue = if (showLocationDetails) 180f else 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
+                            label = "chevron_rotation"
+                        ).value
+                    ),
+                tint = MutedForegroundColor
+            )
+        }
+
+        AnimatedVisibility(
+            visible = showLocationDetails,
+            enter = slideInVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                initialOffsetY = { -it / 3 }
+            ) + expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            ) + fadeIn(
+                animationSpec = tween(
+                    durationMillis = 300,
+                    easing = LinearOutSlowInEasing
+                )
+            ),
+            exit = slideOutVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                targetOffsetY = { -it / 3 }
+            ) + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            ) + fadeOut(
+                animationSpec = tween(
+                    durationMillis = 200,
+                    easing = FastOutLinearInEasing
+                )
+            )
+        ) {
+            LocationDetailsCard(
+                student = student,
+                locationAddress = locationAddress,
+                isLoadingLocation = isLoadingLocation,
+                locationDetailTextSize = locationDetailTextSize,
+                coordinatesTextSize = coordinatesTextSize,
+                iconSize = iconSize,
+                cornerRadius = cornerRadius,
+                isCompact = isCompact
+            )
+        }
+
+        // Animated summary text when collapsed
+        AnimatedVisibility(
+            visible = !showLocationDetails,
+            enter = fadeIn(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutLinearInEasing
+                )
+            )
+        ) {
+            Text(
+                text = if (isLoadingLocation) {
+                    "Loading location..."
+                } else {
+                    locationAddress?.let { address ->
+                        // Show first part of address (street name or city)
+                        address.split(",").firstOrNull()?.trim() ?: "Location recorded"
+                    } ?: "Location recorded"
+                },
+                fontSize = locationSummaryTextSize,
+                color = MutedForegroundColor,
+                modifier = Modifier.padding(top = 4.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun LocationDetailsCard(
+    student: AttendanceStudent,
+    locationAddress: String?,
+    isLoadingLocation: Boolean,
+    locationDetailTextSize: TextUnit,
+    coordinatesTextSize: TextUnit,
+    iconSize: Dp,
+    cornerRadius: Dp,
+    isCompact: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = if (isCompact) 6.dp else 8.dp)
+            .background(
+                color = MutedColor.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(cornerRadius)
+            )
+            .padding(if (isCompact) 8.dp else 12.dp),
+        verticalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 6.dp)
+    ) {
+        // Address
+        if (isLoadingLocation) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Lucide.MapPin,
+                    contentDescription = "Loading",
+                    modifier = Modifier.size(iconSize),
+                    tint = PrimaryColor.copy(0.7f)
+                )
+                Text(
+                    text = "Loading address...",
+                    fontSize = locationDetailTextSize,
+                    color = PrimaryColor.copy(0.7f),
+                    fontStyle = FontStyle.Italic
+                )
+            }
+        } else {
+            Text(
+                text = locationAddress ?: LocationUtils.formatCoordinates(
+                    student.latitude!!,
+                    student.longitude!!
+                ),
+                fontSize = locationDetailTextSize,
+                color = PrimaryColor.copy(0.7f),
+                lineHeight = if (isCompact) 14.sp else 16.sp
+            )
+        }
+
+        if (student.accuracy != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Lucide.Target,
+                    contentDescription = "Accuracy",
+                    modifier = Modifier.size(iconSize),
+                    tint = PrimaryColor.copy(0.7f)
+                )
+                Text(
+                    text = "Accuracy: ${
+                        LocationUtils.getAccuracyDescription(student.accuracy)
+                    }",
+                    fontSize = locationDetailTextSize,
+                    color = PrimaryColor.copy(0.7f)
+                )
+            }
+        }
+
+        Text(
+            text = LocationUtils.formatCoordinates(
+                student.latitude!!,
+                student.longitude!!
+            ),
+            fontSize = coordinatesTextSize,
+            color = PrimaryColor.copy(0.5f),
+            fontFamily = FontFamily.Monospace
+        )
     }
 }

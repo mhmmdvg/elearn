@@ -1,8 +1,11 @@
 package com.elearn.presentation.ui.screens.details.course.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -18,6 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -32,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +58,7 @@ import com.elearn.presentation.ui.screens.details.course.CourseDetailEvent
 import com.elearn.presentation.ui.screens.details.course.CourseDetailEventBus
 import com.elearn.presentation.ui.theme.AccentColor
 import com.elearn.presentation.ui.theme.MutedColor
+import com.elearn.presentation.ui.theme.MutedForegroundColor
 import com.elearn.presentation.ui.theme.PrimaryColor
 import com.elearn.presentation.ui.theme.PrimaryForegroundColor
 import com.elearn.presentation.viewmodel.attendance.AttendanceViewModel
@@ -60,6 +69,7 @@ import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AttendanceCheckinBottomSheet(
     attendanceViewModel: AttendanceViewModel = hiltViewModel(),
@@ -84,6 +94,19 @@ fun AttendanceCheckinBottomSheet(
     val isLate = startTime?.let {
         currentTime.isAfter(it.plusMinutes(30))
     } ?: false
+
+    // Responsive values based on screen configuration
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val isCompact = screenWidth < 600.dp
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // Adaptive spacing and sizing
+    val horizontalPadding = if (isCompact) 16.dp else (screenWidth * 0.1f).coerceAtMost(32.dp)
+    val verticalSpacing = if (isCompact) 16.dp else 20.dp
+    val cardPadding = if (isCompact) 16.dp else 20.dp
+    val buttonHeight = if (isCompact) 48.dp else 52.dp
+    val textFieldHeight = if (isLandscape) 100.dp else 120.dp
 
     if (showLocationPermission) {
         LocationPermissionHandler(
@@ -146,8 +169,15 @@ fun AttendanceCheckinBottomSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(horizontal = horizontalPadding, vertical = 16.dp)
             .navigationBarsPadding()
+            .let {
+                if (isLandscape) {
+                    it.verticalScroll(rememberScrollState())
+                } else {
+                    it
+                }
+            }
     ) {
         // Header
         Row(
@@ -157,8 +187,9 @@ fun AttendanceCheckinBottomSheet(
         ) {
             Text(
                 text = "Check-in Attendance",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = if (isCompact) 20.sp else 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
             )
 
             IconButton(
@@ -167,12 +198,13 @@ fun AttendanceCheckinBottomSheet(
             ) {
                 Icon(
                     imageVector = Lucide.X,
-                    contentDescription = "Close"
+                    contentDescription = "Close",
+                    modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(verticalSpacing))
 
         // Session Info Card
         Card(
@@ -183,61 +215,61 @@ fun AttendanceCheckinBottomSheet(
             border = BorderStroke(1.dp, MutedColor)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.padding(cardPadding),
+                verticalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 16.dp)
             ) {
                 Text(
                     text = session.title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = if (isCompact) 18.sp else 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryColor,
+                    lineHeight = if (isCompact) 24.sp else 28.sp
                 )
 
                 if (session.description.isNotBlank()) {
                     Text(
                         text = session.description,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = if (isCompact) 14.sp else 16.sp,
+                        color = MutedForegroundColor,
+                        lineHeight = if (isCompact) 20.sp else 24.sp
                     )
                 }
 
-                // Time Information
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                // Time Information - Stack vertically on small screens
+                if (isCompact && !isLandscape) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Lucide.Clock,
-                            contentDescription = "Time",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
+                        TimeInfoRow(
+                            icon = Lucide.Clock,
                             text = "${startTime?.format(DateTimeFormatter.ofPattern("HH:mm"))} - ${
                                 endTime?.format(DateTimeFormatter.ofPattern("HH:mm"))
                             }",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            isCompact = isCompact
+                        )
+                        TimeInfoRow(
+                            icon = Lucide.Calendar,
+                            text = startTime?.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")) ?: "",
+                            isCompact = isCompact
                         )
                     }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                } else {
+                    // Side by side layout for larger screens or landscape
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 16.dp else 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Lucide.Calendar,
-                            contentDescription = "Date",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        TimeInfoRow(
+                            icon = Lucide.Clock,
+                            text = "${startTime?.format(DateTimeFormatter.ofPattern("HH:mm"))} - ${
+                                endTime?.format(DateTimeFormatter.ofPattern("HH:mm"))
+                            }",
+                            isCompact = isCompact
                         )
-                        Text(
-                            text = startTime?.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
-                                ?: "",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        TimeInfoRow(
+                            icon = Lucide.Calendar,
+                            text = startTime?.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")) ?: "",
+                            isCompact = isCompact
                         )
                     }
                 }
@@ -251,12 +283,12 @@ fun AttendanceCheckinBottomSheet(
                         Icon(
                             imageVector = Lucide.TriangleAlert,
                             contentDescription = "Late",
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(if (isCompact) 16.dp else 18.dp),
                             tint = Color(0xFFFF9800)
                         )
                         Text(
                             text = "You're checking in late",
-                            fontSize = 14.sp,
+                            fontSize = if (isCompact) 14.sp else 16.sp,
                             color = Color(0xFFFF9800),
                             fontWeight = FontWeight.Medium
                         )
@@ -272,27 +304,27 @@ fun AttendanceCheckinBottomSheet(
                         Icon(
                             imageVector = Lucide.MapPin,
                             contentDescription = "Location Required",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(if (isCompact) 16.dp else 18.dp),
+                            tint = MutedForegroundColor
                         )
                         Text(
                             text = "Location will be recorded",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = if (isCompact) 14.sp else 16.sp,
+                            color = MutedForegroundColor
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(verticalSpacing))
 
         // Notes Section
         Text(
             text = "Notes (Optional)",
-            fontSize = 16.sp,
+            fontSize = if (isCompact) 16.sp else 18.sp,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = if (isCompact) 8.dp else 12.dp)
         )
 
         OutlinedTextField(
@@ -300,9 +332,14 @@ fun AttendanceCheckinBottomSheet(
             onValueChange = { notes = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
-            placeholder = { Text("Add any additional notes...") },
-            maxLines = 4,
+                .height(textFieldHeight),
+            placeholder = {
+                Text(
+                    "Add any additional notes...",
+                    fontSize = if (isCompact) 14.sp else 16.sp
+                )
+            },
+            maxLines = if (isLandscape) 3 else 4,
             enabled = !isLoading,
             shape = RoundedCornerShape(14),
             colors = OutlinedTextFieldDefaults.colors(
@@ -312,10 +349,13 @@ fun AttendanceCheckinBottomSheet(
                 unfocusedTextColor = PrimaryColor,
                 errorBorderColor = Color.Red,
                 errorTextColor = PrimaryColor
+            ),
+            textStyle = LocalTextStyle.current.copy(
+                fontSize = if (isCompact) 14.sp else 16.sp
             )
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(if (isCompact) 20.dp else 24.dp))
 
         // Check-in Button
         Button(
@@ -332,7 +372,7 @@ fun AttendanceCheckinBottomSheet(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(buttonHeight),
             colors = ButtonDefaults.buttonColors(
                 containerColor = AccentColor,
                 disabledContainerColor = MutedColor
@@ -342,19 +382,20 @@ fun AttendanceCheckinBottomSheet(
         ) {
             if (attendanceCheckinCreated is Resource.Loading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(if (isCompact) 20.dp else 24.dp),
                     color = Color.White,
                     strokeWidth = 2.dp
                 )
             } else {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Lucide.UserCheck,
                         contentDescription = "Check In",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(if (isCompact) 20.dp else 24.dp),
+                        tint = PrimaryForegroundColor
                     )
                     Text(
                         text = when {
@@ -362,13 +403,38 @@ fun AttendanceCheckinBottomSheet(
                             session.requireLocation && !isLocationReady -> "Getting Location..."
                             else -> "Check In Now"
                         },
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
+                        fontSize = if (isCompact) 16.sp else 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = PrimaryForegroundColor
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(if (isCompact) 16.dp else 20.dp))
+    }
+}
+
+@Composable
+private fun TimeInfoRow(
+    icon: ImageVector,
+    text: String,
+    isCompact: Boolean
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(if (isCompact) 16.dp else 18.dp),
+            tint = PrimaryColor.copy(0.8f)
+        )
+        Text(
+            text = text,
+            fontSize = if (isCompact) 14.sp else 16.sp,
+            color = PrimaryColor.copy(0.8f)
+        )
     }
 }
