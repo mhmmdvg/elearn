@@ -305,13 +305,13 @@ fun AttendanceSessionCard(
                             imageVector = if (isCheckedIn) Lucide.Check else Lucide.UserCheck,
                             contentDescription = if (isCheckedIn) "Checked In" else "Check In",
                             modifier = Modifier.size(iconSize),
-                            tint = if (isCheckedIn) MutedForegroundColor else PrimaryColor
+                            tint = if (isCheckedIn) MutedForegroundColor else PrimaryForegroundColor
                         )
                         Text(
                             text = if (isCheckedIn) "Checked In" else "Check In Now",
                             fontSize = bodyFontSize,
                             fontWeight = FontWeight.Medium,
-                            color = if (isCheckedIn) MutedForegroundColor else PrimaryColor
+                            color = if (isCheckedIn) MutedForegroundColor else PrimaryForegroundColor
                         )
                     }
                 }
